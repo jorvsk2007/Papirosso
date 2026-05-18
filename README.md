@@ -33,7 +33,7 @@ El sistema utiliza una arquitectura de cliente-servidor desacoplada:
 | **Backend** | Node.js / Express | API REST encargada de la lógica de negocio y peticiones. |
 | **Base de Datos** | PostgreSQL (vía Supabase) | Almacenamiento relacional de productos, clientes y ventas. |
 | **Hosting** | GitHub Pages & Render | Despliegue de la interfaz y el servidor respectivamente. |
-|[Diagrama de Base de Datos](./DER.png)
+|[Diagrama de Base de Datos](./DER.png)|
 
 
 ---
