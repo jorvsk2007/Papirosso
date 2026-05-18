@@ -10,7 +10,7 @@ jobs:
 
       - name: Inyectar URL de la API
         run: |
-          sed -i "s|API|<script>window.PROCESS_ENV={API_URL:'${{ secrets.API_URL }}'}</script>|g" index.html
+          sed -i "s|CONFIG_API|<script>window.PROCESS_ENV={API_URL:'${{ secrets.API_URL }}'}</script>|g" index.html
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
