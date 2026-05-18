@@ -8,13 +8,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Inyectar llaves
+      - name: Inyectar URL de la API
         run: |
-          # El robot cambia el texto 'MARCA_PARA_LLAVES' por el script real
-          sed -i "s|MARCA_PARA_LLAVES|<script>window.PROCESS_ENV={SUPABASE_URL:'${{ secrets.SUPABASE_URL }}',SUPABASE_KEY:'${{ secrets.SUPABASE_KEY }}'}</script>|g" index.html
+          sed -i "s|API|<script>window.PROCESS_ENV={API_URL:'${{ secrets.API_URL }}'}</script>|g" index.html
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: .
-          branch: gh-pages # IMPORTANTE: La versión con llaves vive aquí
+          branch: gh-pages
