@@ -1,5 +1,4 @@
-// 1. CONFIGURACIÓN INICIAL
-const API_URL = window.PROCESS_ENV?.API_URL || "TU_API_AQUI";
+const API_URL = "https://tu-backend-en-render.onrender.com";
 
 let usuarioActual = null;
 let carrito = [];
