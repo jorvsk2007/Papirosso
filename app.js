@@ -1,10 +1,3 @@
-// Estas líneas buscan las claves que GitHub inyectará
-const URL_SB = window.PROCESS_ENV?.SUPABASE_URL || "USAR_LOCAL";
-const KEY_SB = window.PROCESS_ENV?.SUPABASE_KEY || "USAR_LOCAL";
-
-// Conexión a Supabase usando esas variables
-const supabaseClient = supabase.createClient(URL_SB, KEY_SB);
-
 const API_URL = "https://passwordsproyectopapeleria.onrender.com/api";
 
 let usuarioActual = null;
