@@ -1,9 +1,10 @@
+// 1. CONFIGURACIÓN INICIAL
 const API_URL = window.PROCESS_ENV?.API_URL || "TU_API_AQUI";
 
 let usuarioActual = null;
 let carrito = [];
 let totalVentaAnterior = 0;
-let clienteSeleccionado = null; // Guardará el objeto del cliente o null
+let clienteSeleccionado = null; 
 
 // 2. FUNCIONES DE INTERFAZ (MODALES Y MENÚS)
 function abrirLogin() {
@@ -23,7 +24,7 @@ function toggleDropdown() {
 function abrirBuscador() {
     document.getElementById('modal-busqueda').classList.remove('hidden');
     document.getElementById('search-input').value = '';
-    filtrarProductos(''); // Carga inicial de todos los productos
+    filtrarProductos(''); 
 }
 
 function cerrarBuscador() {
@@ -36,7 +37,6 @@ async function ejecutarLogin() {
     const errorMsg = document.getElementById('login-error-msg');
     
     try {
-        // Ahora enviamos la CURP al servidor, no a Supabase directamente
         const respuesta = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -77,11 +77,9 @@ function cerrarSesion() {
 
 // 4. NAVEGACIÓN Y RENDERIZADO DE VISTAS
 function navegar(pantalla, btn) {
-    // 1. Limpiamos espacios y pasamos a minúsculas
     const rolActual = usuarioActual.rol.trim().toLowerCase();
     console.log("Rol detectado en navegación:", rolActual);
 
-    // 2. Bloqueo de Reportes
     if (pantalla === 'reportes') {
         if (rolActual !== 'admin') {
             alert(`Acceso Denegado. Tu rol es "${usuarioActual.rol}", se requiere "Admin".`);
@@ -89,13 +87,11 @@ function navegar(pantalla, btn) {
         }
     }
 
-    // 3. Bloqueo de Ventas para Almacenista
     if (pantalla === 'ventas' && rolActual === 'almacenista') {
         alert("Los almacenistas no tienen permiso para realizar ventas.");
         return;
     }
 
-    // Si pasa, cambiamos la vista
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
@@ -149,7 +145,6 @@ function irAVentas() {
 
 async function irAProductos() {
     const main = document.getElementById('main-content');
-    
     try {
         const respuesta = await fetch(`${API_URL}/productos`);
         const data = await respuesta.json();
@@ -182,10 +177,15 @@ async function irAProductos() {
 
 // 5. LÓGICA DE VENTA (EL TICKET)
 async function filtrarProductos(termino) {
-    let query = supabaseClient.from('producto').select('*');
-    if (termino) query = query.ilike('nombre', `%${termino}%`);
-    
-    const { data } = await query;
+    // Llamada al API para buscar productos
+    const respuesta = await fetch(`${API_URL}/productos`);
+    let data = await respuesta.json();
+
+    // Filtrado simple en el cliente si el API no soporta query strings aún
+    if (termino) {
+        data = data.filter(p => p.nombre.toLowerCase().includes(termino.toLowerCase()));
+    }
+
     const body = document.getElementById('search-results-body');
     body.innerHTML = data.map(p => `
         <tr>
@@ -212,6 +212,16 @@ function añadirAlCarrito(id, nombre, precio) {
 function quitarDelCarrito(index) {
     carrito.splice(index, 1);
     actualizarVistaTicket();
+}
+
+function cambiarCantidad(idx, delta) {
+    const nuevoValor = carrito[idx].cantidad + delta;
+    if (nuevoValor <= 0) {
+        quitarDelCarrito(idx);
+    } else {
+        carrito[idx].cantidad = nuevoValor;
+        actualizarVistaTicket();
+    }
 }
 
 function actualizarVistaTicket() {
@@ -253,7 +263,7 @@ async function registrarVenta() {
             precio_total: totalVenta,
             curp_cliente: clienteSeleccionado,
             curp_trabajador: usuarioActual.curp,
-            detalles: carrito // Enviamos el carrito completo para que el backend procese el stock
+            detalles: carrito 
         };
 
         const respuesta = await fetch(`${API_URL}/ventas`, {
@@ -265,7 +275,7 @@ async function registrarVenta() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("Venta registrada con éxito: " + resultado.id_venta);
+            alert("Venta registrada con éxito: " + (resultado.id_venta || "OK"));
             totalVentaAnterior = totalVenta;
             carrito = [];
             irAVentas();
@@ -283,7 +293,6 @@ function abrirModalProducto() {
 
 function cerrarModalProducto() {
     document.getElementById('modal-nuevo-producto').classList.add('hidden');
-    // Limpiar campos
     document.getElementById('reg-nombre').value = '';
     document.getElementById('reg-precio').value = '';
     document.getElementById('reg-stock').value = '';
@@ -298,91 +307,75 @@ async function guardarProductoBD() {
         return alert("Por favor, llena todos los campos correctamente.");
     }
 
-    // Generamos un ID manual porque tu tabla usa Varchar (Ej: P-842)
     const idManual = "P-" + Math.floor(Math.random() * 999);
 
     try {
-        const { data, error } = await supabaseClient
-            .from('producto')
-            .insert([{ 
-                id_producto: idManual, // <-- IMPORTANTE: Enviamos el ID
+        const respuesta = await fetch(`${API_URL}/productos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                id_producto: idManual, 
                 nombre: nombre, 
                 precio: precio, 
                 cant_exist: stock 
-            }])
-            .select();
+            })
+        });
 
-        if (error) throw error;
+        if (!respuesta.ok) throw new Error("Error al guardar en API");
 
         alert("Producto registrado exitosamente con ID: " + idManual);
         cerrarModalProducto();
         irAProductos(); 
 
     } catch (err) {
-        console.error(err);
         alert("Error al guardar: " + err.message);
     }
 }
 
 async function irAReportes() {
     const main = document.getElementById('main-content');
-    const { data, error } = await supabaseClient.from('ventas').select('*');
+    try {
+        const respuesta = await fetch(`${API_URL}/reportes`);
+        const data = await respuesta.json();
 
-    main.innerHTML = `
-        <div style="background:white; padding:30px; border-radius:12px;">
-            <h2>Historial de Ventas (Reporte General)</h2>
-            <table style="width:100%; margin-top:20px;">
-                <thead>
-                    <tr style="text-align:left; border-bottom:2px solid #eee;">
-                        <th>ID Venta</th>
-                        <th>Fecha</th>
-                        <th>Total</th>
-                        <th>Trabajador</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${data.map(v => `
-                        <tr style="border-bottom:1px solid #eee;">
-                            <td style="padding:15px;">#${v.id_venta}</td>
-                            <td>${new Date(v.fecha).toLocaleDateString()}</td>
-                            <td>$${parseFloat(v.precio_total).toFixed(2)}</td>
-                            <td><small>${v.curp_trabajador}</small></td>
+        main.innerHTML = `
+            <div style="background:white; padding:30px; border-radius:12px;">
+                <h2>Historial de Ventas (Reporte General)</h2>
+                <table style="width:100%; margin-top:20px;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom:2px solid #eee;">
+                            <th>ID Venta</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Trabajador</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+                    </thead>
+                    <tbody>
+                        ${data.map(v => `
+                            <tr style="border-bottom:1px solid #eee;">
+                                <td style="padding:15px;">#${v.id_venta}</td>
+                                <td>${new Date(v.fecha).toLocaleDateString()}</td>
+                                <td>$${parseFloat(v.precio_total).toFixed(2)}</td>
+                                <td><small>${v.curp_trabajador}</small></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) { console.error("Error al cargar reportes", e); }
 }
 
-function cambiarCantidad(idx, delta) {
-    const nuevoValor = carrito[idx].cantidad + delta;
-    
-    if (nuevoValor <= 0) {
-        quitarDelCarrito(idx);
-    } else {
-        carrito[idx].cantidad = nuevoValor;
-        actualizarVistaTicket();
-    }
-}
-
-// 1. Corregimos la consulta para que pida 'curp' (como está en tu imagen)
 async function abrirModalCliente() {
     document.getElementById('modal-cliente').classList.remove('hidden');
     
-    const { data: clientes, error } = await supabaseClient
-        .from('cliente')
-        .select('curp, persona(nombre, apellidos)'); 
-    
-    if (error) {
-        console.error("Error al traer clientes:", error);
-        return;
-    }
-    
-    renderizarListaClientes(clientes);
+    try {
+        const respuesta = await fetch(`${API_URL}/clientes`);
+        const clientes = await respuesta.json();
+        renderizarListaClientes(clientes);
+    } catch (e) { console.error("Error al traer clientes", e); }
 }
 
-// 2. Corregimos el renderizado para leer 'curp' y manejar nombres nulos
 function renderizarListaClientes(clientes) {
     const body = document.getElementById('lista-clientes-body');
     
@@ -392,9 +385,7 @@ function renderizarListaClientes(clientes) {
     }
 
     body.innerHTML = clientes.map(c => {
-        // Si persona es null por algún error de relación, ponemos un genérico
-        const nombreDisplay = c.persona ? `${c.persona.nombre} ${c.persona.apellidos}` : "Sin nombre (Revisar Relación)";
-        
+        const nombreDisplay = c.persona ? `${c.persona.nombre} ${c.persona.apellidos}` : "Sin nombre";
         return `
             <tr>
                 <td>${nombreDisplay}</td>
@@ -422,37 +413,23 @@ function cerrarModalCliente() {
 }
 
 async function filtrarClientes(termino) {
-    // 1. Traemos a todos los clientes (Consulta limpia, sin error 400)
-    const { data: todosLosClientes, error } = await supabaseClient
-        .from('cliente')
-        .select('curp, persona(nombre, apellidos)');
+    try {
+        const respuesta = await fetch(`${API_URL}/clientes`);
+        const todosLosClientes = await respuesta.json();
 
-    if (error) {
-        console.error("Error al obtener datos:", error.message);
-        return;
-    }
+        if (!termino.trim()) {
+            renderizarListaClientes(todosLosClientes);
+            return;
+        }
 
-    // 2. Si el buscador está vacío, mostramos la lista completa
-    if (!termino.trim()) {
-        renderizarListaClientes(todosLosClientes);
-        return;
-    }
+        const busqueda = termino.toLowerCase();
+        const clientesFiltrados = todosLosClientes.filter(c => {
+            const nombre = (c.persona?.nombre || "").toLowerCase();
+            const apellidos = (c.persona?.apellidos || "").toLowerCase();
+            const curp = (c.curp || "").toLowerCase();
+            return nombre.includes(busqueda) || apellidos.includes(busqueda) || curp.includes(busqueda);
+        });
 
-    // 3. FILTRADO MANUAL EN JAVASCRIPT (Aquí es donde ocurre la magia)
-    const busqueda = termino.toLowerCase();
-
-    const clientesFiltrados = todosLosClientes.filter(c => {
-        // Obtenemos los valores o strings vacíos si son nulos
-        const nombre = (c.persona?.nombre || "").toLowerCase();
-        const apellidos = (c.persona?.apellidos || "").toLowerCase();
-        const curp = (c.curp || "").toLowerCase();
-
-        // Si el término está en el nombre, apellidos o curp, lo incluimos
-        return nombre.includes(busqueda) || 
-               apellidos.includes(busqueda) || 
-               curp.includes(busqueda);
-    });
-
-    // 4. Renderizamos los resultados que encontramos
-    renderizarListaClientes(clientesFiltrados);
+        renderizarListaClientes(clientesFiltrados);
+    } catch (e) { console.error(e); }
 }
