@@ -49,7 +49,7 @@ async function ejecutarLogin() {
     }
 
     try {
-        console.log(`Intentando login en: ${urlBase}/login`); // Para que veas la ruta real en consola
+        console.log(`Intententando hacer el login en la base`); // Para que veas la ruta real en consola
 
         const respuesta = await fetch(`${urlBase}/login`, {
             method: 'POST',
