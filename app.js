@@ -1,11 +1,4 @@
-// Asegúrate de que estas variables tengan tus datos de Supabase
-const URL_SB = window.PROCESS_ENV?.SUPABASE_URL || "TU_URL_DE_SUPABASE";
-const KEY_SB = window.PROCESS_ENV?.SUPABASE_KEY || "TU_KEY_DE_SUPABASE";
-
-// Sin esto, los reportes y el buscador de productos NO funcionarán
-const supabaseClient = supabase.createClient(URL_SB, KEY_SB);
-
-const API_URL = "https://passwordsproyectopapeleria.onrender.com/api";
+const API_URL = window.PROCESS_ENV?.API_URL || "TU_API_AQUI";
 
 let usuarioActual = null;
 let carrito = [];
