@@ -1,24 +1,56 @@
 # jorvsk2007.github.io
-Pagina creada por Rodríguez Martínez José y Rosales Juarez Alexis
+# 🚀 Proyecto: Super Pape :D
 
-                                        Instituto Politécnico Nacional
-                                        
-                                        Escuela Superior de Cómputo
-                                        
-                                        UA: Bases de datos
-                                        
-                                        Rodríguez Martínez José
-                                        Rosales Juárez Alexis
-                                        
-                                        Profesor Titular: Gabriel Hurtado Avilés
-                                        
-                                        Grupo: 3CV4
-                                        
-                                        Fecha de entrega: 10 de febrero del 2026
-                                        
-                                        
-                                        Proyecto: Super pape :D
+### Sistema de Gestión de Base de Datos para Papelería
 
-La aplicacion desplegada se ejecuta en: https://jorvsk2007.github.io
+Este proyecto forma parte de la Unidad de Aprendizaje de **Bases de Datos** en la **Escuela Superior de Cómputo (ESCOM - IPN)**. Es una aplicación web integral que permite gestionar inventarios, ventas y roles de usuario de manera eficiente.
 
- 
+---
+
+## 🏛️ Información Académica
+
+* **Institución:** Instituto Politécnico Nacional
+* **Unidad Académica:** Escuela Superior de Cómputo (ESCOM)
+* **Unidad de Aprendizaje:** Bases de Datos
+* **Grupo:** 3CV4
+* **Profesor Titular:** Gabriel Hurtado Avilés
+* **Fecha de Entrega:** 10 de febrero de 2026
+
+**Desarrolladores:**
+
+* Rodríguez Martínez José
+* Rosales Juárez Alexis
+
+---
+
+## 🛠️ Arquitectura y Stack Tecnológico
+
+El sistema utiliza una arquitectura de cliente-servidor desacoplada:
+
+| Componente | Tecnología | Función |
+| --- | --- | --- |
+| **Frontend** | HTML5, CSS3, JavaScript (Vanilla) | Interfaz de usuario dinámica y gestión de estados. |
+| **Backend** | Node.js / Express | API REST encargada de la lógica de negocio y peticiones. |
+| **Base de Datos** | PostgreSQL (vía Supabase) | Almacenamiento relacional de productos, clientes y ventas. |
+| **Hosting** | GitHub Pages & Render | Despliegue de la interfaz y el servidor respectivamente. |
+|[Diagrama de Base de Datos](./DER.png)
+
+
+---
+
+## 🏗️ Gestión de Datos y Backend
+
+Para mantener la integridad y la organización del proyecto, la gestión de la base de datos se realiza bajo las siguientes premisas técnicas:
+
+* **API RESTful:** La comunicación entre la página y la base de datos se realiza exclusivamente a través de un servidor intermedio. El frontend solicita información y el servidor procesa las consultas.
+* **Aislamiento de Credenciales:** Por diseño del sistema, las claves de conexión y configuraciones sensibles de la base de datos no residen en este repositorio público. Toda la configuración del motor de la base de datos se gestiona de forma aislada en el repositorio privado del backend.
+* **Persistencia:** Se utiliza un modelo relacional normalizado para garantizar que las existencias (stock) y el historial de ventas se mantengan consistentes en cada transacción.
+
+---
+
+## 🌐 Despliegue
+
+La aplicación está disponible para su ejecución en el siguiente enlace:
+👉 [https://jorvsk2007.github.io](https://jorvsk2007.github.io)
+
+---
