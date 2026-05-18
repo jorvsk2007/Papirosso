@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGBD | Papelería DB</title>
+    
+    <script>window.PROCESS_ENV={SUPABASE_URL:'https://kxnxjxiwcbypudikbais.supabase.co',SUPABASE_KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4bnhqeGl3Y2J5cHVkaWtiYWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxOTAwNzUsImV4cCI6MjA4ODc2NjA3NX0.5O7Wlzz3XRRlWky9LNPtu2-xbznBYOmC0lmBWgbArCs'}</script>
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="brand">papeleria_db</div>
+        
+        <div class="user-section">
+            <button id="btn-login-trigger" class="login-trigger-btn" onclick="abrirLogin()">
+                Iniciar Sesión
+            </button>
+
+            <div id="user-profile" class="user-profile hidden">
+                <div class="user-info" onclick="toggleDropdown()">
+                    <span id="user-display-name">Cargando...</span>
+                    <i class="arrow-down"></i>
+                </div>
+                <div id="user-dropdown" class="dropdown-content hidden">
+                    <button onclick="cerrarSesion()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-bar hidden" id="main-nav">
+        <div class="nav-container">
+            <button class="nav-btn active" onclick="navegar('ventas', this)">🛒 Ventas</button>
+            <button class="nav-btn" onclick="navegar('productos', this)">📦 Productos</button>
+            <button class="nav-btn" onclick="navegar('inventario', this)">📋 Inventario</button>
+            <button class="nav-btn" onclick="navegar('reportes', this)">📊 Reportes</button>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <div class="hero-welcome">
+            <h1>Sistema de Gestión de Base de Datos</h1>
+            <p>Papelería Central v1.0</p>
+            <img src="https://cdn-icons-png.flaticon.com/512/3061/3061341.png" alt="logo" width="150">
+        </div>
+    </main>
+
+    <div id="modal-login" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Identificación de Usuario</h2>
+            </div>
+            <div class="modal-body">
+                <label>CURP del Trabajador</label>
+                <input type="text" id="input-curp" placeholder="Ingrese su identificador..." autocomplete="off">
+                <p id="login-error-msg" class="error-text hidden">La CURP no coincide con ningún trabajador activo.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="cerrarLogin()">Cancelar</button>
+                <button class="btn-confirm" onclick="ejecutarLogin()">Acceder al Sistema</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-busqueda" class="modal-overlay hidden">
+        <div class="modal-card xxl">
+            <div class="modal-header">
+                <h2>Catálogo de Productos</h2>
+                <input type="text" id="search-input" placeholder="Buscar por nombre o descripción..." oninput="filtrarProductos(this.value)">
+            </div>
+            <div class="modal-body">
+                <div class="table-wrapper">
+                    <table id="search-results-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Precio Unitario</th>
+                                <th>Existencias</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="search-results-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="cerrarBuscador()">Cerrar Ventana</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-nuevo-producto" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Registrar Nuevo Producto</h2>
+        </div>
+        <div class="modal-body">
+            <label>Nombre del Producto</label>
+            <input type="text" id="reg-nombre" placeholder="Ej. Cuaderno Profesional">
+            <label style="margin-top:15px; display:block;">Precio</label>
+            <input type="number" id="reg-precio" placeholder="0.00">
+            <label style="margin-top:15px; display:block;">Existencia Inicial</label>
+            <input type="number" id="reg-stock" placeholder="0">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="cerrarModalProducto()">Cancelar</button>
+            <button class="btn-confirm" onclick="guardarProductoBD()">Guardar en DB</button>
+        </div>
+    </div>
+</div>
+
+    <div id="modal-cliente" class="modal-overlay hidden">
+    <div class="modal-card">
+        <h3>Seleccionar Cliente</h3>
+        <input type="text" id="search-cliente" placeholder="Buscar por nombre o CURP..." onkeyup="filtrarClientes(this.value)">
+        <div style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
+            <table style="width: 100%;">
+                <thead>
+                    <tr><th>Nombre</th><th>CURP</th><th>Acción</th></tr>
+                </thead>
+                <tbody id="lista-clientes-body">
+                    </tbody>
+            </table>
+        </div>
+        <button class="btn-cancel" onclick="cerrarModalCliente()">Cancelar</button>
+        <button class="btn-confirm" onclick="seleccionarClienteNull()" style="background: #6c757d;">Venta sin Cliente (Público General)</button>
+    </div>
+</div>
+
+    <script src="app.js"></script>
+</body>
+</html>
