@@ -5,7 +5,7 @@ const KEY_SB = window.PROCESS_ENV?.SUPABASE_KEY || "USAR_LOCAL";
 // Conexión a Supabase usando esas variables
 const supabaseClient = supabase.createClient(URL_SB, KEY_SB);
 
-const API_URL = "http://localhost:3000/api";
+//const API_URL = "http://localhost:3000/api";
 
 let usuarioActual = null;
 let carrito = [];
