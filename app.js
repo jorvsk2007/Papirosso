@@ -1,3 +1,6 @@
+const API_URL = "https://tu-backend-en-render.onrender.com/api";
+
+// Ahora (Funcionará porque le das una ruta real a donde ir)
 const API_URL = "https://tu-backend-en-render.onrender.com";
 
 let usuarioActual = null;
