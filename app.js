@@ -32,15 +32,42 @@ function cerrarBuscador() {
 
 // 3. LÓGICA DE LOGIN
 async function ejecutarLogin() {
-    const curp = document.getElementById('input-curp').value.trim();
+    const curpInput = document.getElementById('input-curp');
+    const curp = curpInput.value.trim();
     const errorMsg = document.getElementById('login-error-msg');
     
+    if (!curp) {
+        alert("Por favor, ingresa tu CURP.");
+        return;
+    }
+
+    // 1. LIMPIEZA DE URL (Para evitar el 404)
+    // Eliminamos cualquier diagonal al final y nos aseguramos de que termine en /api
+    let urlBase = API_URL.replace(/\/+$/, ""); 
+    if (!urlBase.endsWith('/api')) {
+        urlBase += '/api';
+    }
+
     try {
-        const respuesta = await fetch(`${API_URL}/login`, {
+        console.log(`Intentando login en: ${urlBase}/login`); // Para que veas la ruta real en consola
+
+        const respuesta = await fetch(`${urlBase}/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json' 
+            },
             body: JSON.stringify({ curp })
         });
+
+        // 2. VERIFICACIÓN DE TIPO DE RESPUESTA
+        // Si el servidor responde con HTML (error 404), esto evitará el error de "Unexpected token <"
+        const contentType = respuesta.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const textoError = await respuesta.text();
+            console.error("Respuesta no es JSON:", textoError);
+            throw new Error("El servidor no respondió con JSON. Revisa la URL de la API.");
+        }
 
         const data = await respuesta.json();
 
@@ -50,21 +77,30 @@ async function ejecutarLogin() {
             return;
         }
 
-        if (data) {
-            usuarioActual = data;
-            document.getElementById('modal-login').classList.add('hidden');
-            document.getElementById('btn-login-trigger').classList.add('hidden');
-            document.getElementById('user-profile').classList.remove('hidden');
-            document.getElementById('main-nav').classList.remove('hidden');
-            
-            const nombreCompleto = data.persona ? data.persona.nombre : "Usuario"; 
-            document.getElementById('user-display-name').innerText = `${data.rol}: ${nombreCompleto}`;
-            
-            const rol = usuarioActual.rol.toLowerCase();
-            if (rol === 'almacenista') irAProductos(); else irAVentas();
-            alert("¡Bienvenido " + nombreCompleto + "!");
+        // 3. ÉXITO EN EL LOGIN
+        usuarioActual = data;
+        
+        // UI Updates
+        document.getElementById('modal-login').classList.add('hidden');
+        document.getElementById('btn-login-trigger').classList.add('hidden');
+        document.getElementById('user-profile').classList.remove('hidden');
+        document.getElementById('main-nav').classList.remove('hidden');
+        
+        const nombreCompleto = data.persona ? data.persona.nombre : "Usuario"; 
+        document.getElementById('user-display-name').innerText = `${data.rol}: ${nombreCompleto}`;
+        
+        // Navegación según rol
+        const rol = data.rol.toLowerCase().trim();
+        if (rol === 'almacenista') {
+            irAProductos();
+        } else {
+            irAVentas();
         }
+
+        alert(`¡Bienvenido ${nombreCompleto}!`);
+
     } catch (e) {
+        console.error("Error detallado:", e);
         alert("Error conectando al servidor: " + e.message);
     }
 }
