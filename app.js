@@ -1,7 +1,5 @@
 const API_URL = window.API_URL || "http://localhost:3000";
 
-const API_URL = "https://passwordsproyectopapeleria.onrender.com/api;
-
 let usuarioActual = null;
 let carrito = [];
 let totalVentaAnterior = 0;
