@@ -1,7 +1,6 @@
-const API_URL = "https://tu-backend-en-render.onrender.com/api";
+const API_URL = window.API_URL || "http://localhost:3000";
 
-// Ahora (Funcionará porque le das una ruta real a donde ir)
-const API_URL = "https://tu-backend-en-render.onrender.com";
+const API_URL = "https://passwordsproyectopapeleria.onrender.com/api;
 
 let usuarioActual = null;
 let carrito = [];
