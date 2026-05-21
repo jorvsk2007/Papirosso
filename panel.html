@@ -14,10 +14,10 @@
             <span id="user-display-name" class="user-badge">Cargando usuario...</span>
         </div>
         <nav id="main-nav" class="hero-nav">
-            <a href="#" id="nav-ventas" onclick="switchTab('section-ventas')">Punto de Venta</a>
-            <a href="#" id="nav-productos" onclick="switchTab('section-productos')">Inventario</a>
-            <a href="#" id="nav-clientes" onclick="switchTab('section-clientes')">Clientes</a>
-            <a href="#" id="nav-reportes" onclick="switchTab('section-reportes')">Reportes/Historial</a>
+            <a href="#" id="nav-ventas" onclick="switchTab('section-ventas', this)">Punto de Venta</a>
+            <a href="#" id="nav-productos" onclick="switchTab('section-productos', this)">Inventario</a>
+            <a href="#" id="nav-clientes" onclick="switchTab('section-clientes', this)">Clientes</a>
+            <a href="#" id="nav-reportes" onclick="switchTab('section-reportes', this)">Reportes/Historial</a>
             <a href="#" onclick="cerrarSesion()" class="btn-logout">Cerrar Sesión</a>
         </nav>
     </header>
