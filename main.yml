@@ -1,0 +1,19 @@
+name: Despliegue Seguro
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Inyectar URL de la API
+        run: |
+          sed -i "s|CONFIG_API|window.API_URL='${{ secrets.API_URL }}'|g" index.html
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: .
+          branch: gh-pages
