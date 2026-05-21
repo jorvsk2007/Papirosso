@@ -26,17 +26,16 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // Limpiamos los espacios que ponga el usuario en el formulario
         const curpUsuario = curp.trim();
 
-        // 1. Buscamos usando filtros avanzados para quitar los espacios fijos de bpchar(18)
+        // 1. Traemos los trabajadores apuntando a la columna correcta: 'password'
         const { data: trabajadores, error } = await supabase
             .from('trabajadores')
             .select(`
                 curp,
                 rol,
                 sueldo,
-                contrasenia,
+                password,
                 persona:personas (
                     nombre,
                     apellidos
@@ -48,8 +47,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(500).json({ error: "Error al consultar la base de datos." });
         }
 
-        // Buscamos la coincidencia limpiando los espacios invisibles de la base de datos (.trim())
-        // e ignorando mayúsculas/minúsculas (.toUpperCase())
+        // Buscamos la coincidencia limpiando los espacios fijos del tipo bpchar con .trim()
         const trabajador = trabajadores.find(t => 
             t.curp && t.curp.trim().toUpperCase() === curpUsuario.toUpperCase()
         );
@@ -58,8 +56,8 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: "La CURP ingresada no está registrada como trabajador." });
         }
 
-        // 2. Validar si la contraseña coincide (también limpiando espacios por si acaso)
-        if (trabajador.contrasenia.trim() !== password.trim()) {
+        // 2. Validar contraseña usando '.password' y aplicando .trim() para quitarle el relleno de bpchar
+        if (trabajador.password.trim() !== password.trim()) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
