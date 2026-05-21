@@ -182,37 +182,67 @@ function irAVentas() {
 }
 
 async function irAProductos() {
-    const main = document.getElementById('main-content');
+    // Detectamos si estamos en la tienda pública o en el panel privado
+    const mainPrivado = document.getElementById('main-content');
+    const gridPublico = document.getElementById('product-grid');
+    
     try {
         const respuesta = await fetch(`${API_URL}/productos`);
         const data = await respuesta.json();
 
-        const rol = usuarioActual.rol.toLowerCase();
-        const puedeAgregar = (rol === 'admin' || rol === 'almacenista');
+        // CASO 1: Si existe 'product-grid', estamos en cliente-publico.html
+        if (gridPublico) {
+            if (!data || data.length === 0) {
+                gridPublico.innerHTML = '<p class="no-products">No hay productos disponibles en este momento.</p>';
+                return;
+            }
+            // Renderizamos los productos en formato de tarjetas de mercado libre / marketplace
+            gridPublico.innerHTML = data.map(p => `
+                <article class="product-card">
+                    <div class="product-info">
+                        <span class="product-id">ID: ${p.id_producto}</span>
+                        <h3>${p.nombre}</h3>
+                        <p class="price">$${p.precio.toFixed(2)}</p>
+                        <p class="stock ${p.cant_exist <= 5 ? 'low-stock' : ''}">Disponibles: ${p.cant_exist}</p>
+                    </div>
+                    <button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">
+                        Añadir al carrito
+                    </button>
+                </article>
+            `).join('');
+            return; // Termina la ejecución aquí para la tienda pública
+        }
 
-        main.innerHTML = `
-            <div style="background:white; padding:30px; border-radius:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                    <h2 style="margin:0;">Inventario General</h2>
-                    ${puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : ''}
+        // CASO 2: Si no, estamos en el panel privado de administrador/almacenista (usa main-content)
+        if (mainPrivado) {
+            const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
+            const puedeAgregar = (rol === 'admin' || rol === 'almacenista');
+
+            mainPrivado.innerHTML = `
+                <div style="background:white; padding:30px; border-radius:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                        <h2 style="margin:0;">Inventario General</h2>
+                        ${puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : ''}
+                    </div>
+                    <table style="width:100%; text-align:left;">
+                        <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr></thead>
+                        <tbody>
+                            ${data.map(p => `
+                                <tr>
+                                    <td>${p.id_producto}</td>
+                                    <td>${p.nombre}</td>
+                                    <td>$${p.precio.toFixed(2)}</td>
+                                    <td>${p.cant_exist}</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
                 </div>
-                <table style="width:100%; text-align:left;">
-                    <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr></thead>
-                    <tbody>
-                        ${data.map(p => `
-                            <tr>
-                                <td>${p.id_producto}</td>
-                                <td>${p.nombre}</td>
-                                <td>$${p.precio.toFixed(2)}</td>
-                                <td>${p.cant_exist}</td>
-                            </tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    } catch (e) { console.error("Error al cargar productos", e); }
+            `;
+        }
+    } catch (e) { 
+        console.error("Error al cargar productos", e); 
+    }
 }
-
 // 5. LÓGICA DE VENTA (EL TICKET)
 async function filtrarProductos(termino) {
     // Llamada al API para buscar productos
