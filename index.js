@@ -26,33 +26,33 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // 1. Buscamos al trabajador por su CURP e incluimos la columna password y los datos de su persona
+        // 1. Buscamos al trabajador por su CURP e incluimos la columna 'contrasenia' real
         const { data: trabajador, error } = await supabase
             .from('trabajadores')
             .select(`
                 curp,
                 rol,
                 sueldo,
-                password,
+                contrasenia,
                 persona:personas (
                     nombre,
                     apellidos
                 )
             `)
             .eq('curp', curp.trim())
-            .single(); // Trae un solo objeto en vez de un array
+            .single(); 
 
         if (error || !trabajador) {
             console.error("Error o trabajador no encontrado:", error);
             return res.status(401).json({ error: "La CURP ingresada no existe." });
         }
 
-        // 2. Validar si la contraseña coincide (comparación directa en texto plano por ahora)
-        if (trabajador.password !== password) {
+        // 2. Validar si la contraseña coincide usando el nombre de columna real de tu tabla
+        if (trabajador.contrasenia !== password) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
-        // 3. Si todo está bien, preparamos la respuesta ocultando el password por seguridad
+        // 3. Si todo está bien, preparamos la respuesta ocultando la contraseña por seguridad
         const usuarioValido = {
             curp: trabajador.curp,
             rol: trabajador.rol,
