@@ -18,39 +18,192 @@
             <a href="#" id="nav-productos" onclick="switchTab('section-productos', this)">Inventario</a>
             <a href="#" id="nav-clientes" onclick="switchTab('section-clientes', this)">Clientes</a>
             <a href="#" id="nav-reportes" onclick="switchTab('section-reportes', this)">Reportes/Historial</a>
+            <a href="#" id="nav-registro" onclick="switchTab('section-registro', this)">Alta de Personal/Clientes</a>
             <a href="#" onclick="cerrarSesion()" class="btn-logout">Cerrar Sesión</a>
         </nav>
     </header>
 
     <main class="page-shell">
         <section id="section-ventas" class="tab-content hidden">
-            <h2>🛒 Punto de Venta (Módulo de Cobro)</h2>
-            <p>Aquí el cajero puede registrar los productos comprados por el cliente.</p>
-            <div class="placeholder-box">🛒 Espacio para la interfaz de cobro y carrito...</div>
-        </section>
+            </section>
 
         <section id="section-productos" class="tab-content hidden">
-            <h2>📦 Gestión de Inventario</h2>
-            <p>Control de stock y alta de nuevos artículos de papelería.</p>
-            <div class="placeholder-box">📦 Lista de productos y botón para añadir stock...</div>
+            <div style="background:white; padding:30px; border-radius:12px; border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                    <h2 style="margin:0;">📦 Gestión de Inventario General</h2>
+                    <div id="btn-nuevo-producto-container"></div>
+                </div>
+                <table style="width:100%; text-align:left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border);">
+                            <th style="padding:10px;">ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventario-tabla-body">
+                        <tr><td colspan="4" style="padding:20px; text-align:center; color:var(--text-muted);">Cargando productos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section id="section-clientes" class="tab-content hidden">
-            <h2>👥 Directorio de Clientes</h2>
-            <p>Listado y vinculación de personas registradas en el sistema.</p>
-            <div class="placeholder-box">👥 Tabla de clientes con CURP y nombres...</div>
+            <div style="background:white; padding:30px; border-radius:12px; border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="margin:0;">👥 Directorio de Clientes Registrados</h2>
+                    <input type="text" id="buscar-cliente-input" oninput="filtrarClientesPanel(this.value)" placeholder="🔍 Buscar por nombre o CURP..." style="padding:8px 12px; border-radius:6px; border:1px solid var(--border); width:280px;">
+                </div>
+                <table style="width:100%; text-align:left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--border);">
+                            <th style="padding:10px;">Nombre Completo</th>
+                            <th>CURP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clientes-tabla-body">
+                        <tr><td colspan="2" style="padding:20px; text-align:center; color:var(--text-muted);">Cargando clientes...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
 
         <section id="section-reportes" class="tab-content hidden">
-            <h2>📊 Historial de Ventas y Reportes</h2>
-            <p>Registro cronológico de todas las transacciones realizadas.</p>
-            <div class="placeholder-box">📊 Gráficas, totales de ingresos e historial de folios...</div>
+            <div style="background:white; padding:30px; border-radius:12px; border: 1px solid var(--border);">
+                <h2>📊 Historial de Ventas (Reporte General)</h2>
+                <table style="width:100%; margin-top:20px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom:2px solid var(--border);">
+                            <th style="padding:15px 10px;">ID Venta</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Trabajador (CURP)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportes-tabla-body">
+                        <tr><td colspan="4" style="padding:20px; text-align:center; color:var(--text-muted);">Cargando historial de ventas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="section-registro" class="tab-content hidden">
+            <div style="background:white; padding:30px; border-radius:12px; border: 1px solid var(--border); max-width: 600px; margin: 0 auto;">
+                <h2>🔑 Registro de Nuevos Usuarios en el Sistema</h2>
+                <p style="color:var(--text-muted); font-size:14px; margin-bottom:25px;">Da de alta nuevas personas en la base de datos vinculando sus roles correspondientes.</p>
+                
+                <form id="form-alta-usuario" onsubmit="guardarNuevoUsuario(event)" style="display:flex; flex-direction:column; gap:15px;">
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">Tipo de Registro</label>
+                        <select id="alta-tipo" onchange="toggleCamposRegistro()" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                            <option value="cliente">Cliente</option>
+                            <option value="trabajador">Trabajador (Cajero/Almacenista/Admin)</option>
+                        </select>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <div>
+                            <label style="display:block; font-weight:600; margin-bottom:5px;">Nombre(s)</label>
+                            <input type="text" id="alta-nombre" required placeholder="Ej. Juan" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:600; margin-bottom:5px;">Apellidos</label>
+                            <input type="text" id="alta-apellidos" required placeholder="Ej. Pérez Gómez" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display:block; font-weight:600; margin-bottom:5px;">CURP (18 caracteres)</label>
+                        <input type="text" id="alta-curp" required maxlength="18" placeholder="Ej. PEGJ900101HDFXXX01" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border); text-transform: uppercase;">
+                    </div>
+
+                    <div id="campos-trabajador" class="hidden" style="display:flex; flex-direction:column; gap:15px; border-left: 3px solid var(--primary); padding-left: 15px; margin: 10px 0;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                            <div>
+                                <label style="display:block; font-weight:600; margin-bottom:5px;">Rol de Empleado</label>
+                                <select id="alta-rol" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                                    <option value="cajero">Cajero</option>
+                                    <option value="almacenista">Almacenista</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block; font-weight:600; margin-bottom:5px;">Sueldo Quincenal ($)</label>
+                                <input type="number" id="alta-sueldo" placeholder="0.00" step="0.01" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display:block; font-weight:600; margin-bottom:5px;">Contraseña de Acceso</label>
+                            <input type="password" id="alta-password" placeholder="Establece una contraseña" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-confirm" style="width:100%; padding:12px; font-weight:800; margin-top:10px;">💾 REGISTRAR EN BASE DE DATOS</button>
+                </form>
+            </div>
         </section>
     </main>
 
+    <div id="modal-busqueda" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>🔍 Buscar e Inserción de Artículos</h2>
+                <button class="btn-close" onclick="cerrarBuscador()">✖</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="search-input" oninput="filtrarProductos(this.value)" placeholder="Escribe el nombre del artículo de papelería..." style="width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid var(--border);">
+                <table style="width:100%; text-align:left;">
+                    <thead>
+                        <tr><th>ID</th><th>Producto</th><th>Precio</th><th>Stock</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="search-results-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-cliente" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>👥 Seleccionar Cliente para el Ticket</h2>
+                <button class="btn-close" onclick="cerrarModalCliente()">✖</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" oninput="filtrarClientes(this.value)" placeholder="Buscar cliente por CURP o Nombre..." style="width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid var(--border);">
+                <div style="margin-bottom: 15px;">
+                    <button class="btn-cancel" onclick="seleccionarClienteNull()" style="width:100%; padding:10px;">Público General (Ninguno)</button>
+                </div>
+                <table style="width:100%; text-align:left;">
+                    <thead>
+                        <tr><th>Nombre</th><th>CURP</th><th>Acción</th></tr>
+                    </thead>
+                    <tbody id="lista-clientes-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-nuevo-producto" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>📦 Registrar Nuevo Artículo de Papelería</h2>
+                <button class="btn-close" onclick="cerrarModalProducto()">✖</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+                <label>Nombre del Producto</label>
+                <input type="text" id="reg-nombre" placeholder="Ej. Libreta Scribe Raya">
+                <label>Precio Unitario ($)</label>
+                <input type="number" id="reg-precio" placeholder="0.00" step="0.01">
+                <label>Existencia Inicial (Stock)</label>
+                <input type="number" id="reg-stock" placeholder="10">
+                <button class="btn-confirm" onclick="guardarProductoBD()" style="margin-top:10px;">Guardar en Inventario</button>
+            </div>
+        </div>
+    </div>
+
     <script src="legacy-app.js"></script>
     <script>
-        // Al cargar la página del panel, validamos los permisos inmediatamente
         window.onload = verificarPermisosPanel;
     </script>
 </body>
