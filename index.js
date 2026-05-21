@@ -11,16 +11,54 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 // --- 1. RUTA DE LOGIN ---
 app.post('/api/login', async (req, res) => {
-    const { curp } = req.body;
-    const { data, error } = await supabase
-        .from('trabajadores')
-        .select('curp, rol, persona(nombre, apellidos)')
-        .eq('curp', curp)
-        .maybeSingle();
+    const { curp, password } = req.body;
 
-    if (error) return res.status(500).json({ error: error.message });
-    if (!data) return res.status(401).json({ error: "CURP no encontrada" });
-    res.json(data);
+    // Validación básica de entrada
+    if (!curp || !password) {
+        return res.status(400).json({ error: "CURP y contraseña son obligatorios." });
+    }
+
+    try {
+        // 1. Buscamos al trabajador por su CURP e incluimos la columna password y los datos de su persona
+        const { data: trabajador, error } = await supabase
+            .from('trabajadores')
+            .select(`
+                curp,
+                rol,
+                sueldo,
+                password,
+                persona:personas (
+                    nombre,
+                    apellidos
+                )
+            `)
+            .eq('curp', curp.trim())
+            .single(); // Trae un solo objeto en vez de un array
+
+        if (error || !trabajador) {
+            console.error("Error o trabajador no encontrado:", error);
+            return res.status(401).json({ error: "La CURP ingresada no existe." });
+        }
+
+        // 2. Validar si la contraseña coincide (comparación directa en texto plano por ahora)
+        if (trabajador.password !== password) {
+            return res.status(401).json({ error: "Contraseña incorrecta." });
+        }
+
+        // 3. Si todo está bien, preparamos la respuesta ocultando el password por seguridad
+        const usuarioValido = {
+            curp: trabajador.curp,
+            rol: trabajador.rol,
+            sueldo: trabajador.sueldo,
+            persona: trabajador.persona
+        };
+
+        return res.json(usuarioValido);
+
+    } catch (err) {
+        console.error("Error interno en el servidor:", err);
+        return res.status(500).json({ error: "Error interno del servidor al procesar el login." });
+    }
 });
 
 // --- 2. RUTA DE PRODUCTOS (Listado y Filtro) ---
