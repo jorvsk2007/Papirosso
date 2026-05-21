@@ -1,4 +1,7 @@
-const API_URL = window.API_URL || "http://localhost:3000";
+// Cambia esto con la URL real que te asigne Render para tu backend
+const API_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "https://tu-proyecto.onrender.com";
 
 let usuarioActual = null;
 let carrito = [];
