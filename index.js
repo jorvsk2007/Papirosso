@@ -150,3 +150,42 @@ app.get('/api/reportes', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
+
+// --- RUTA COMPUESTA: REGISTRO DE TRABAJADORES O CLIENTES ---
+app.post('/api/usuarios/registro', async (req, res) => {
+    const { tipo, curp, nombre, apellidos, rol, sueldo, password } = req.body;
+
+    if (!curp || !nombre || !apellidos) {
+        return res.status(400).json({ error: "CURP, nombre y apellidos son requeridos." });
+    }
+
+    // 1. Insertar en la tabla maestra de 'personas'
+    const { error: errPersona } = await supabase
+        .from('personas')
+        .insert([{ curp, nombre, apellidos }]);
+
+    if (errPersona) {
+        return res.status(400).json({ error: "Error al registrar persona: " + errPersona.message });
+    }
+
+    // 2. Insertar en la tabla subordinada según el tipo elegido
+    if (tipo === 'trabajador') {
+        if (!rol || !sueldo || !password) {
+            return res.status(400).json({ error: "Faltan datos de contratación del trabajador." });
+        }
+        const { error: errTrabajador } = await supabase
+            .from('trabajadores')
+            .insert([{ curp, rol, sueldo, password }]);
+
+        if (errTrabajador) return res.status(400).json({ error: "Persona creada, pero falló el rol de trabajador: " + errTrabajador.message });
+    } else {
+        // Tipo Cliente
+        const { error: errCliente } = await supabase
+            .from('clientes')
+            .insert([{ curp }]);
+
+        if (errCliente) return res.status(400).json({ error: "Persona creada, pero falló el registro en clientes: " + errCliente.message });
+    }
+
+    res.json({ success: true, message: `Registro completado exitosamente como ${tipo}` });
+});
