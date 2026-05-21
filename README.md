@@ -48,6 +48,22 @@ Para mantener la integridad y la organización del proyecto, la gestión de la b
 
 ---
 
+## 🧩 Configuración de Supabase
+
+Para conectar el frontend con Supabase debes reemplazar los valores de configuración en `login.html` y `cliente-publico.html`:
+
+* `window.SUPABASE_URL`
+* `window.SUPABASE_ANON_KEY`
+
+El archivo `supabase-schema.sql` contiene el script para:
+
+* agregar la columna `password` en la tabla `trabajadores`
+* crear la tabla `ventas` si no existe
+
+> En producción, usa siempre contraseñas hasheadas en lugar de texto plano.
+
+---
+
 ## 🌐 Despliegue
 
 La aplicación está disponible para su ejecución en el siguiente enlace:
