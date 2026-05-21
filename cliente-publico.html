@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Pública | Papelería DB</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script>
+        window.SUPABASE_URL = 'https://kxnxjxiwcbypudikbais.supabase.co';
+        window.SUPABASE_ANON_KEY = 'sb_publishable_HUfoNdd0wOR2C5fRx8gFlQ_X4c5m-oveyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4bnhqeGl3Y2J5cHVkaWtiYWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxOTAwNzUsImV4cCI6MjA4ODc2NjA3NX0.5O7Wlzz3XRRlWky9LNPtu2-xbznBYOmC0lmBWgbArCs';
+    </script>
+</head>
+<body class="store-page">
+    <header class="page-header">
+        <a class="brand" href="index.html">papeleria_db</a>
+        <nav class="store-menu">
+            <a href="login.html">Iniciar Sesión</a>
+            <a href="index.html">Inicio</a>
+        </nav>
+        <button id="easter-egg-trigger" class="easter-egg hidden" aria-label="Egg">🦴</button>
+    </header>
+
+    <main class="page-shell store-shell">
+        <section class="store-hero">
+            <div>
+                <span class="eyebrow">Tienda Estilo Mercado</span>
+                <h1>Compra con actitud de marketplace</h1>
+                <p>Catálogo, ofertas, reseñas y carrito en una sola experiencia pensada para tu papelería.</p>
+                <div class="hero-badges">
+                    <span class="store-badge">Envío rápido</span>
+                    <span class="store-badge">Pagos seguros</span>
+                    <span class="store-badge">Ofertas del día</span>
+                </div>
+            </div>
+            <div class="search-box">
+                <input id="public-search" type="search" placeholder="Buscar productos, marcas o categorías...">
+                <p class="search-hint">Tip: escribe <strong>mortadela</strong> para descubrir algo secreto.</p>
+            </div>
+        </section>
+
+        <section class="product-grid" id="product-grid"></section>
+
+        <aside class="cart-panel">
+            <h2>Tu carrito</h2>
+            <div id="cart-items">Tu carrito está vacío</div>
+            <div class="cart-total">Total: <strong id="cart-total">$0.00</strong></div>
+            <button class="btn-confirm" id="checkout-button">Finalizar Compra</button>
+        </aside>
+    </main>
+
+    <div id="easter-egg-modal" class="modal-overlay hidden">
+        <div class="modal-card easter-card">
+            <div class="modal-header">
+                <h2>Sans dice...</h2>
+            </div>
+            <div class="modal-body">
+                <p><strong>“hey. it’s a beautiful day outside. birds are singing, flowers are blooming... on days like these, kids like you... should be buying stationery.”</strong></p>
+                <p>Mortadela + papelería = estilo total. 💀</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="close-easter-egg">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/store.js"></script>
+</body>
+</html>
