@@ -26,8 +26,11 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // 1. Buscamos al trabajador por su CURP e incluimos la columna 'contrasenia' real
-        const { data: trabajador, error } = await supabase
+        // Limpiamos espacios y forzamos a MAYÚSCULAS el texto que viene del formulario
+        const curpLimpia = curp.trim().toUpperCase();
+
+        // 1. Buscamos al trabajador usando .ilike para ignorar mayúsculas/minúsculas y espacios extra
+        const { data: trabajadoresEncontrados, error } = await supabase
             .from('trabajadores')
             .select(`
                 curp,
@@ -39,22 +42,25 @@ app.post('/api/login', async (req, res) => {
                     apellidos
                 )
             `)
-            .eq('curp', curp.trim())
-            .single(); 
+            .ilike('curp', curpLimpia); // Busca ignorando diferencias sutiles de texto
 
-        if (error || !trabajador) {
-            console.error("Error o trabajador no encontrado:", error);
-            return res.status(401).json({ error: "La CURP ingresada no existe." });
+        // Si da error o el array regresa vacío, significa que de verdad no está esa CURP en 'trabajadores'
+        if (error || !trabajadoresEncontrados || trabajadoresEncontrados.length === 0) {
+            console.error("Error o trabajador no encontrado en la base de datos:", error);
+            return res.status(401).json({ error: "La CURP ingresada no está registrada como trabajador." });
         }
 
-        // 2. Validar si la contraseña coincide usando el nombre de columna real de tu tabla
-        if (trabajador.contrasenia !== password) {
+        // Como .ilike trae un array, tomamos el primer resultado
+        const trabajador = trabajadoresEncontrados[0];
+
+        // 2. Validar si la contraseña coincide (sin espacios en blanco)
+        if (trabajador.contrasenia.trim() !== password.trim()) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
-        // 3. Si todo está bien, preparamos la respuesta ocultando la contraseña por seguridad
+        // 3. Si todo está bien, preparamos la respuesta de éxito
         const usuarioValido = {
-            curp: trabajador.curp,
+            curp: trabajador.curp.trim(),
             rol: trabajador.rol,
             sueldo: trabajador.sueldo,
             persona: trabajador.persona
@@ -67,7 +73,6 @@ app.post('/api/login', async (req, res) => {
         return res.status(500).json({ error: "Error interno del servidor al procesar el login." });
     }
 });
-
 // --- 2. RUTA DE PRODUCTOS (Listado y Filtro) ---
 app.get('/api/productos', async (req, res) => {
     const { nombre } = req.query; // Para cuando busques desde el modal
