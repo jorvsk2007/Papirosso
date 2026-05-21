@@ -16,64 +16,52 @@ app.use(express.json()); // Recuerda que esta línea es obligatoria para leer el
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// --- 1. RUTA DE LOGIN ---
+// --- 1. RUTA DE LOGIN (VERSIÓN A PRUEBA DE FALLOS) ---
 app.post('/api/login', async (req, res) => {
     const { curp, password } = req.body;
 
-    // Validación básica de entrada
     if (!curp || !password) {
         return res.status(400).json({ error: "CURP y contraseña son obligatorios." });
     }
 
     try {
-        const curpUsuario = curp.trim();
-
-        // 1. Traemos los trabajadores apuntando a la columna correcta: 'password'
+        // 1. Consulta limpia: sin uniones (joins) que rompan la base de datos.
         const { data: trabajadores, error } = await supabase
             .from('trabajadores')
-            .select(`
-                curp,
-                rol,
-                sueldo,
-                password,
-                persona:personas (
-                    nombre,
-                    apellidos
-                )
-            `);
+            .select('*');
 
+        // Si la base de datos falla, ahora nos dirá exactamente por qué
         if (error) {
-            console.error("Error al consultar Supabase:", error);
-            return res.status(500).json({ error: "Error al consultar la base de datos." });
+            console.error("Fallo de Supabase:", error.message);
+            return res.status(500).json({ error: `Error DB: ${error.message}` });
         }
 
-        // Buscamos la coincidencia limpiando los espacios fijos del tipo bpchar con .trim()
+        // 2. Buscamos limpiando los espacios invisibles
+        const curpLimpia = curp.trim().toUpperCase();
         const trabajador = trabajadores.find(t => 
-            t.curp && t.curp.trim().toUpperCase() === curpUsuario.toUpperCase()
+            t.curp && t.curp.trim().toUpperCase() === curpLimpia
         );
 
         if (!trabajador) {
-            return res.status(401).json({ error: "La CURP ingresada no está registrada como trabajador." });
+            return res.status(401).json({ error: "La CURP no está registrada." });
         }
 
-        // 2. Validar contraseña usando '.password' y aplicando .trim() para quitarle el relleno de bpchar
-        if (trabajador.password.trim() !== password.trim()) {
+        // 3. Validamos la contraseña (evitando errores si un usuario no tiene password aún)
+        if (!trabajador.password || trabajador.password.trim() !== password.trim()) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
-        // 3. Si todo está bien, preparamos la respuesta de éxito
-        const usuarioValido = {
+        // 4. Éxito total. Mandamos nombre genérico por ahora para evitar el choque de tablas.
+        return res.json({
             curp: trabajador.curp.trim(),
             rol: trabajador.rol,
             sueldo: trabajador.sueldo,
-            persona: trabajador.persona
-        };
-
-        return res.json(usuarioValido);
+            persona: { nombre: "Equipo", apellidos: "Papelería" }
+        });
 
     } catch (err) {
-        console.error("Error interno en el servidor:", err);
-        return res.status(500).json({ error: "Error interno del servidor al procesar el login." });
+        console.error("Error de Node:", err);
+        return res.status(500).json({ error: `Error de servidor: ${err.message}` });
     }
 });
 
