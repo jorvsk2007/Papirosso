@@ -26,11 +26,11 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // Limpiamos espacios y forzamos a MAYÚSCULAS el texto que viene del formulario
-        const curpLimpia = curp.trim().toUpperCase();
+        // Limpiamos los espacios que ponga el usuario en el formulario
+        const curpUsuario = curp.trim();
 
-        // 1. Buscamos al trabajador usando .ilike para ignorar mayúsculas/minúsculas y espacios extra
-        const { data: trabajadoresEncontrados, error } = await supabase
+        // 1. Buscamos usando filtros avanzados para quitar los espacios fijos de bpchar(18)
+        const { data: trabajadores, error } = await supabase
             .from('trabajadores')
             .select(`
                 curp,
@@ -41,19 +41,24 @@ app.post('/api/login', async (req, res) => {
                     nombre,
                     apellidos
                 )
-            `)
-            .ilike('curp', curpLimpia); // Busca ignorando diferencias sutiles de texto
+            `);
 
-        // Si da error o el array regresa vacío, significa que de verdad no está esa CURP en 'trabajadores'
-        if (error || !trabajadoresEncontrados || trabajadoresEncontrados.length === 0) {
-            console.error("Error o trabajador no encontrado en la base de datos:", error);
+        if (error) {
+            console.error("Error al consultar Supabase:", error);
+            return res.status(500).json({ error: "Error al consultar la base de datos." });
+        }
+
+        // Buscamos la coincidencia limpiando los espacios invisibles de la base de datos (.trim())
+        // e ignorando mayúsculas/minúsculas (.toUpperCase())
+        const trabajador = trabajadores.find(t => 
+            t.curp && t.curp.trim().toUpperCase() === curpUsuario.toUpperCase()
+        );
+
+        if (!trabajador) {
             return res.status(401).json({ error: "La CURP ingresada no está registrada como trabajador." });
         }
 
-        // Como .ilike trae un array, tomamos el primer resultado
-        const trabajador = trabajadoresEncontrados[0];
-
-        // 2. Validar si la contraseña coincide (sin espacios en blanco)
+        // 2. Validar si la contraseña coincide (también limpiando espacios por si acaso)
         if (trabajador.contrasenia.trim() !== password.trim()) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
@@ -73,6 +78,7 @@ app.post('/api/login', async (req, res) => {
         return res.status(500).json({ error: "Error interno del servidor al procesar el login." });
     }
 });
+
 // --- 2. RUTA DE PRODUCTOS (Listado y Filtro) ---
 app.get('/api/productos', async (req, res) => {
     const { nombre } = req.query; // Para cuando busques desde el modal
