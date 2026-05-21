@@ -489,3 +489,64 @@ async function filtrarClientes(termino) {
         renderizarListaClientes(clientesFiltrados);
     } catch (e) { console.error(e); }
 }
+
+// ==========================================
+// CONTROL DE ROLES Y PESTAÑAS EN EL PANEL
+// ==========================================
+
+function verificarPermisosPanel() {
+    // Intentamos recuperar el objeto de usuario guardado en el login
+    const sesion = localStorage.getItem('usuario');
+    
+    if (!sesion) {
+        alert("No has iniciado sesión. Redirigiendo al login...");
+        window.location.href = "login.html";
+        return;
+    }
+
+    const usuario = JSON.parse(sesion);
+    const rol = usuario.rol.toLowerCase().trim();
+    
+    // Mostramos el nombre y rol en la cabecera
+    const nombreCompleto = usuario.persona ? `${usuario.persona.nombre} ${usuario.persona.apellidos}` : "Empleado";
+    document.getElementById('user-display-name').innerText = `${usuario.rol}: ${nombreCompleto}`;
+
+    // REGLAS DE RESTRICCIÓN DE ROLES:
+    if (rol === 'administrador' || rol === 'admin') {
+        // El administrador tiene acceso visual a todo
+        switchTab('section-ventas'); // Pestaña inicial por defecto
+    } 
+    else if (rol === 'cajero') {
+        // El cajero SOLO ve ventas e historial simple. Ocultamos inventario y clientes
+        document.getElementById('nav-productos').classList.add('hidden');
+        document.getElementById('nav-clientes').classList.add('hidden');
+        switchTab('section-ventas'); // Lo mandamos directo a cobrar
+    } 
+    else if (rol === 'almacenista') {
+        // El almacenista SOLO ve inventario de productos
+        document.getElementById('nav-ventas').classList.add('hidden');
+        document.getElementById('nav-clientes').classList.add('hidden');
+        document.getElementById('nav-reportes').classList.add('hidden');
+        switchTab('section-productos'); // Lo mandamos directo al almacén
+    }
+}
+
+// Función interactiva para cambiar entre secciones sin recargar la página
+function switchTab(tabId) {
+    // Ocultamos todos los contenidos de pestañas primero
+    const contenidos = document.querySelectorAll('.tab-content');
+    contenidos.forEach(c => c.classList.add('hidden'));
+
+    // Mostramos únicamente la sección solicitada
+    const pestañaActiva = document.getElementById(tabId);
+    if (pestañaActiva) {
+        pestañaActiva.classList.remove('hidden');
+    }
+}
+
+// Limpieza de sesión para salir del sistema de forma segura
+function cerrarSesion() {
+    localStorage.removeItem('usuario');
+    alert("Sesión cerrada correctamente.");
+    window.location.href = "login.html";
+}
