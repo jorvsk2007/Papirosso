@@ -4,8 +4,15 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(cors()); 
-app.use(express.json());
+
+// Configuración avanzada de CORS para permitir la comunicación segura entre GitHub Pages y Render
+app.use(cors({
+    origin: '*', // Permite peticiones desde cualquier origen (incluyendo tu GitHub Pages)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
+
+app.use(express.json()); // Recuerda que esta línea es obligatoria para leer el req.body
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
