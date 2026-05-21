@@ -170,21 +170,20 @@ function irAVentas() {
 }
 
 async function irAProductos() {
-    // Detectamos si estamos en la tienda pública o en el panel privado
-    const mainPrivado = document.getElementById('main-content');
+    const tablaBody = document.getElementById('inventario-tabla-body');
+    const btnContainer = document.getElementById('btn-nuevo-producto-container');
     const gridPublico = document.getElementById('product-grid');
     
     try {
         const respuesta = await fetch(`${API_URL}/productos`);
         const data = await respuesta.json();
 
-        // CASO 1: Si existe 'product-grid', estamos en cliente-publico.html
+        // Si está en la Tienda Pública conserva tu lógica anterior
         if (gridPublico) {
             if (!data || data.length === 0) {
-                gridPublico.innerHTML = '<p class="no-products">No hay productos disponibles en este momento.</p>';
+                gridPublico.innerHTML = '<p class="no-products">No hay productos disponibles.</p>';
                 return;
             }
-            // Renderizamos los productos en formato de tarjetas de mercado libre / marketplace
             gridPublico.innerHTML = data.map(p => `
                 <article class="product-card">
                     <div class="product-info">
@@ -193,44 +192,33 @@ async function irAProductos() {
                         <p class="price">$${p.precio.toFixed(2)}</p>
                         <p class="stock ${p.cant_exist <= 5 ? 'low-stock' : ''}">Disponibles: ${p.cant_exist}</p>
                     </div>
-                    <button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">
-                        Añadir al carrito
-                    </button>
-                </article>
-            `).join('');
-            return; // Termina la ejecución aquí para la tienda pública
+                    <button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">Añadir al carrito</button>
+                </article>`).join('');
+            return;
         }
 
-        // CASO 2: Si no, estamos en el panel privado de administrador/almacenista (usa main-content)
-        if (mainPrivado) {
+        // SI ESTAMOS EN PANEL.HTML (Usa las tablas fijas)
+        if (tablaBody) {
             const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
             const puedeAgregar = (rol === 'admin' || rol === 'almacenista');
 
-            mainPrivado.innerHTML = `
-                <div style="background:white; padding:30px; border-radius:12px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                        <h2 style="margin:0;">Inventario General</h2>
-                        ${puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : ''}
-                    </div>
-                    <table style="width:100%; text-align:left;">
-                        <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr></thead>
-                        <tbody>
-                            ${data.map(p => `
-                                <tr>
-                                    <td>${p.id_producto}</td>
-                                    <td>${p.nombre}</td>
-                                    <td>$${p.precio.toFixed(2)}</td>
-                                    <td>${p.cant_exist}</td>
-                                </tr>`).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            if (btnContainer) {
+                btnContainer.innerHTML = puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : '';
+            }
+
+            tablaBody.innerHTML = data.map(p => `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding:12px 10px;"><mark style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.id_producto}</mark></td>
+                    <td><strong>${p.nombre}</strong></td>
+                    <td>$${p.precio.toFixed(2)}</td>
+                    <td><span style="font-weight:bold; color:${p.cant_exist <= 5 ? 'red' : 'green'}">${p.cant_exist} pzas</span></td>
+                </tr>`).join('');
         }
     } catch (e) { 
         console.error("Error al cargar productos", e); 
     }
 }
+
 // 5. LÓGICA DE VENTA (EL TICKET)
 async function filtrarProductos(termino) {
     // Llamada al API para buscar productos
@@ -389,38 +377,23 @@ async function guardarProductoBD() {
 }
 
 async function irAReportes() {
-    const main = document.getElementById('main-content');
+    const tablaBody = document.getElementById('reportes-tabla-body');
+    if (!tablaBody) return;
+    
     try {
         const respuesta = await fetch(`${API_URL}/reportes`);
         const data = await respuesta.json();
 
-        main.innerHTML = `
-            <div style="background:white; padding:30px; border-radius:12px;">
-                <h2>Historial de Ventas (Reporte General)</h2>
-                <table style="width:100%; margin-top:20px;">
-                    <thead>
-                        <tr style="text-align:left; border-bottom:2px solid #eee;">
-                            <th>ID Venta</th>
-                            <th>Fecha</th>
-                            <th>Total</th>
-                            <th>Trabajador</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(v => `
-                            <tr style="border-bottom:1px solid #eee;">
-                                <td style="padding:15px;">#${v.id_venta}</td>
-                                <td>${new Date(v.fecha).toLocaleDateString()}</td>
-                                <td>$${parseFloat(v.precio_total).toFixed(2)}</td>
-                                <td><small>${v.curp_trabajador}</small></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    } catch (e) { console.error("Error al cargar reportes", e); }
-}
+        tablaBody.innerHTML = data.map(v => `
+            <tr style="border-bottom:1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                <td style="padding:15px 10px; font-weight:600; color:var(--primary);">#${v.id_venta}</td>
+                <td>${new Date(v.fecha).toLocaleDateString()} ${new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                <td style="font-weight:800; color:var(--accent);">$${parseFloat(v.precio_total).toFixed(2)}</td>
+                <td><small style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-family:monospace;">${v.curp_trabajador}</small></td>
+            </tr>`).join('');
+    } catch (e) { 
+        console.error("Error al cargar reportes", e); 
+    }
 
 async function abrirModalCliente() {
     document.getElementById('modal-cliente').classList.remove('hidden');
