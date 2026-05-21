@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control | Papelería DB</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="admin-page">
+    <header class="page-header">
+        <div class="brand-zone">
+            <a class="brand" href="#">papeleria_db</a>
+            <span id="user-display-name" class="user-badge">Cargando usuario...</span>
+        </div>
+        <nav id="main-nav" class="hero-nav">
+            <a href="#" id="nav-ventas" onclick="switchTab('section-ventas')">Punto de Venta</a>
+            <a href="#" id="nav-productos" onclick="switchTab('section-productos')">Inventario</a>
+            <a href="#" id="nav-clientes" onclick="switchTab('section-clientes')">Clientes</a>
+            <a href="#" id="nav-reportes" onclick="switchTab('section-reportes')">Reportes/Historial</a>
+            <a href="#" onclick="cerrarSesion()" class="btn-logout">Cerrar Sesión</a>
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <section id="section-ventas" class="tab-content hidden">
+            <h2>🛒 Punto de Venta (Módulo de Cobro)</h2>
+            <p>Aquí el cajero puede registrar los productos comprados por el cliente.</p>
+            <div class="placeholder-box">🛒 Espacio para la interfaz de cobro y carrito...</div>
+        </section>
+
+        <section id="section-productos" class="tab-content hidden">
+            <h2>📦 Gestión de Inventario</h2>
+            <p>Control de stock y alta de nuevos artículos de papelería.</p>
+            <div class="placeholder-box">📦 Lista de productos y botón para añadir stock...</div>
+        </section>
+
+        <section id="section-clientes" class="tab-content hidden">
+            <h2>👥 Directorio de Clientes</h2>
+            <p>Listado y vinculación de personas registradas en el sistema.</p>
+            <div class="placeholder-box">👥 Tabla de clientes con CURP y nombres...</div>
+        </section>
+
+        <section id="section-reportes" class="tab-content hidden">
+            <h2>📊 Historial de Ventas y Reportes</h2>
+            <p>Registro cronológico de todas las transacciones realizadas.</p>
+            <div class="placeholder-box">📊 Gráficas, totales de ingresos e historial de folios...</div>
+        </section>
+    </main>
+
+    <script src="legacy-app.js"></script>
+    <script>
+        // Al cargar la página del panel, validamos los permisos inmediatamente
+        window.onload = verificarPermisosPanel;
+    </script>
+</body>
+</html>
