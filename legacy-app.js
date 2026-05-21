@@ -495,7 +495,6 @@ async function filtrarClientes(termino) {
 // ==========================================
 
 function verificarPermisosPanel() {
-    // 1. Intentamos recuperar el objeto de usuario guardado en el login
     const sesion = localStorage.getItem('usuario');
     
     if (!sesion) {
@@ -504,76 +503,70 @@ function verificarPermisosPanel() {
         return;
     }
 
-    // Sincronizamos la sesión con la variable global del archivo
     usuarioActual = JSON.parse(sesion);
     const rol = usuarioActual.rol.toLowerCase().trim();
     
-    // 2. Mostramos el nombre y rol en la cabecera
     const nombreCompleto = usuarioActual.persona ? `${usuarioActual.persona.nombre} ${usuarioActual.persona.apellidos}` : "Empleado";
     const userDisplay = document.getElementById('user-display-name');
     if (userDisplay) {
         userDisplay.innerText = `${usuarioActual.rol}: ${nombreCompleto}`;
     }
 
-    // 3. REGLAS DE RESTRICCIÓN VISUAL AL ENTRAR:
+    // CONTROL VISUAL POR ROLES AL ENTRAR
     if (rol === 'administrador' || rol === 'admin') {
+        // Admins ven todo (Incluso la pestaña de alta)
         switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
     else if (rol === 'cajero') {
-        // El cajero no debe administrar inventario ni ver clientes ajenos
         ocultarElemento('nav-productos');
         ocultarElemento('nav-clientes');
-        switchTab('section-ventas', document.getElementById('nav-ventas'));
+        ocultarElemento('nav-registro'); // Bloqueado para cajeros
+        switchTab('section-ventas', document.getElementById('nav-nav-ventas'));
     } 
     else if (rol === 'almacenista') {
-        // El almacenista solo gestiona el stock
         ocultarElemento('nav-ventas');
         ocultarElemento('nav-clientes');
         ocultarElemento('nav-reportes');
+        ocultarElemento('nav-registro'); // Bloqueado para almacenistas
         switchTab('section-productos', document.getElementById('nav-productos'));
     }
 }
 
-// Función auxiliar para evitar errores si un ID no existe en el HTML
 function ocultarElemento(id) {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
 }
 
-// Función interactiva unificada para cambiar entre secciones
 function switchTab(tabId, botonActivado) {
     const rolActual = usuarioActual && usuarioActual.rol ? usuarioActual.rol.toLowerCase().trim() : '';
 
-    // BLOQUEOS DE SEGURIDAD EN NAVEGACIÓN (Por si intentan picar botones usando la consola)
+    // PROTECCIÓN DE SEGURIDAD EN NAVEGACIÓN
     if (tabId === 'section-reportes' && rolActual !== 'admin' && rolActual !== 'administrador') {
-        alert(`Acceso Denegado. Tu rol es "${usuarioActual.rol}", se requiere ser Administrador.`);
+        alert("Acceso Denegado. Módulo reservado para Administradores.");
+        return;
+    }
+    if (tabId === 'section-registro' && rolActual !== 'admin' && rolActual !== 'administrador') {
+        alert("Acceso Denegado. Solo los administradores pueden dar de alta personal.");
         return;
     }
     if (tabId === 'section-ventas' && rolActual === 'almacenista') {
-        alert("Los almacenistas no tienen permitido el acceso al módulo de ventas.");
+        alert("Los almacenistas no operan la caja de cobro.");
         return;
     }
 
-    // 1. Apariencia de los botones de navegación (Remover activo de todos, poner al seleccionado)
-    document.querySelectorAll('.hero-nav a').forEach(btn => {
-        if (btn) btn.classList.remove('active');
-    });
-    if (botonActivado) {
-        botonActivado.classList.add('active');
-    }
+    // Estilo de enlaces activos
+    document.querySelectorAll('.hero-nav a').forEach(btn => { if (btn) btn.classList.remove('active'); });
+    if (botonActivado) botonActivado.classList.add('active');
 
-    // 2. Control visual de las pestañas (Ocultar todas, mostrar la elegida)
+    // Cambiar de pestaña
     const contenidos = document.querySelectorAll('.tab-content');
     contenidos.forEach(c => c.classList.add('hidden'));
 
     const pestañaActiva = document.getElementById(tabId);
-    if (pestañaActiva) {
-        pestañaActiva.classList.remove('hidden');
-    }
+    if (pestañaActiva) pestañaActiva.classList.remove('hidden');
 
-    // 3. Carga de datos asíncronos bajo demanda para no saturar la app
+    // CARGA DE DATOS SEGÚN LA PESTAÑA SELECCIONADA
     if (tabId === 'section-ventas') {
-        // Renderiza el cascarón de tu punto de venta
         const contenedorVentas = document.getElementById('section-ventas');
         contenedorVentas.innerHTML = `
             <h2>🛒 Punto de Venta (Módulo de Cobro)</h2>
@@ -590,12 +583,10 @@ function switchTab(tabId, botonActivado) {
                             🔍 Cambiar Cliente
                         </button>
                     </div>
-
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                         <h3 style="margin:0;">Venta en curso</h3>
-                        <button class="btn-confirm" onclick="abrirBuscador()" style="background:var(--accent);">+ Agregar Producto</button>
+                        <button class="btn-confirm" onclick="abrirBuscador()">+ Agregar Producto</button>
                     </div>
-
                     <table class="ticket-table" style="width:100%; border-collapse: collapse;">
                         <thead>
                             <tr style="text-align:left; border-bottom: 1px solid var(--border);">
@@ -609,7 +600,6 @@ function switchTab(tabId, botonActivado) {
                         <tbody id="ticket-body"></tbody>
                     </table>
                 </div>
-                
                 <div class="totals-section" style="background: var(--header-bg); color: white; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
                     <div class="last-sale" style="opacity: 0.7; font-size: 14px;">Última venta: $${totalVentaAnterior.toFixed(2)}</div>
                     <div class="current-total" style="margin: 20px 0;">
@@ -625,19 +615,12 @@ function switchTab(tabId, botonActivado) {
         actualizarVistaTicket();
     }
     else if (tabId === 'section-productos') {
-        // Dispara tu fetch directo al inventario de Supabase
         irAProductos();
     }
+    else if (tabId === 'section-clientes') {
+        cargarClientesPanel();
+    }
     else if (tabId === 'section-reportes') {
-        // Dispara tu fetch para traer las ventas históricas de Supabase
         irAReportes();
     }
-}
-
-// Limpieza absoluta de sesión para salir del sistema de forma segura
-function cerrarSesion() {
-    localStorage.removeItem('usuario');
-    usuarioActual = null;
-    alert("Sesión finalizada. Volviendo al login.");
-    window.location.href = "login.html";
 }
