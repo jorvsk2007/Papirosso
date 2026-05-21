@@ -491,11 +491,11 @@ async function filtrarClientes(termino) {
 }
 
 // ==========================================
-// CONTROL DE ROLES Y PESTAÑAS EN EL PANEL
+// 4. NAVEGACIÓN, CONTROL DE ROLES Y PESTAÑAS
 // ==========================================
 
 function verificarPermisosPanel() {
-    // Intentamos recuperar el objeto de usuario guardado en el login
+    // 1. Intentamos recuperar el objeto de usuario guardado en el login
     const sesion = localStorage.getItem('usuario');
     
     if (!sesion) {
@@ -504,49 +504,140 @@ function verificarPermisosPanel() {
         return;
     }
 
-    const usuario = JSON.parse(sesion);
-    const rol = usuario.rol.toLowerCase().trim();
+    // Sincronizamos la sesión con la variable global del archivo
+    usuarioActual = JSON.parse(sesion);
+    const rol = usuarioActual.rol.toLowerCase().trim();
     
-    // Mostramos el nombre y rol en la cabecera
-    const nombreCompleto = usuario.persona ? `${usuario.persona.nombre} ${usuario.persona.apellidos}` : "Empleado";
-    document.getElementById('user-display-name').innerText = `${usuario.rol}: ${nombreCompleto}`;
+    // 2. Mostramos el nombre y rol en la cabecera
+    const nombreCompleto = usuarioActual.persona ? `${usuarioActual.persona.nombre} ${usuarioActual.persona.apellidos}` : "Empleado";
+    const userDisplay = document.getElementById('user-display-name');
+    if (userDisplay) {
+        userDisplay.innerText = `${usuarioActual.rol}: ${nombreCompleto}`;
+    }
 
-    // REGLAS DE RESTRICCIÓN DE ROLES:
+    // 3. REGLAS DE RESTRICCIÓN VISUAL AL ENTRAR:
     if (rol === 'administrador' || rol === 'admin') {
-        // El administrador tiene acceso visual a todo
-        switchTab('section-ventas'); // Pestaña inicial por defecto
+        switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
     else if (rol === 'cajero') {
-        // El cajero SOLO ve ventas e historial simple. Ocultamos inventario y clientes
-        document.getElementById('nav-productos').classList.add('hidden');
-        document.getElementById('nav-clientes').classList.add('hidden');
-        switchTab('section-ventas'); // Lo mandamos directo a cobrar
+        // El cajero no debe administrar inventario ni ver clientes ajenos
+        ocultarElemento('nav-productos');
+        ocultarElemento('nav-clientes');
+        switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
     else if (rol === 'almacenista') {
-        // El almacenista SOLO ve inventario de productos
-        document.getElementById('nav-ventas').classList.add('hidden');
-        document.getElementById('nav-clientes').classList.add('hidden');
-        document.getElementById('nav-reportes').classList.add('hidden');
-        switchTab('section-productos'); // Lo mandamos directo al almacén
+        // El almacenista solo gestiona el stock
+        ocultarElemento('nav-ventas');
+        ocultarElemento('nav-clientes');
+        ocultarElemento('nav-reportes');
+        switchTab('section-productos', document.getElementById('nav-productos'));
     }
 }
 
-// Función interactiva para cambiar entre secciones sin recargar la página
-function switchTab(tabId) {
-    // Ocultamos todos los contenidos de pestañas primero
+// Función auxiliar para evitar errores si un ID no existe en el HTML
+function ocultarElemento(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+}
+
+// Función interactiva unificada para cambiar entre secciones
+function switchTab(tabId, botonActivado) {
+    const rolActual = usuarioActual && usuarioActual.rol ? usuarioActual.rol.toLowerCase().trim() : '';
+
+    // BLOQUEOS DE SEGURIDAD EN NAVEGACIÓN (Por si intentan picar botones usando la consola)
+    if (tabId === 'section-reportes' && rolActual !== 'admin' && rolActual !== 'administrador') {
+        alert(`Acceso Denegado. Tu rol es "${usuarioActual.rol}", se requiere ser Administrador.`);
+        return;
+    }
+    if (tabId === 'section-ventas' && rolActual === 'almacenista') {
+        alert("Los almacenistas no tienen permitido el acceso al módulo de ventas.");
+        return;
+    }
+
+    // 1. Apariencia de los botones de navegación (Remover activo de todos, poner al seleccionado)
+    document.querySelectorAll('.hero-nav a').forEach(btn => {
+        if (btn) btn.classList.remove('active');
+    });
+    if (botonActivado) {
+        botonActivado.classList.add('active');
+    }
+
+    // 2. Control visual de las pestañas (Ocultar todas, mostrar la elegida)
     const contenidos = document.querySelectorAll('.tab-content');
     contenidos.forEach(c => c.classList.add('hidden'));
 
-    // Mostramos únicamente la sección solicitada
     const pestañaActiva = document.getElementById(tabId);
     if (pestañaActiva) {
         pestañaActiva.classList.remove('hidden');
     }
+
+    // 3. Carga de datos asíncronos bajo demanda para no saturar la app
+    if (tabId === 'section-ventas') {
+        // Renderiza el cascarón de tu punto de venta
+        const contenedorVentas = document.getElementById('section-ventas');
+        contenedorVentas.innerHTML = `
+            <h2>🛒 Punto de Venta (Módulo de Cobro)</h2>
+            <div class="ventas-view" style="display: grid; grid-template-columns: 1fr 320px; gap: 20px; margin-top: 20px;">
+                <div class="ticket-section" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid var(--border);">
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+                        <div>
+                            <small style="display:block; color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:bold;">Cliente asignado:</small>
+                            <span id="cliente-info-display" style="font-weight: 600; color: var(--text-main);">
+                                ${clienteSeleccionado ? clienteSeleccionado : 'Público General'}
+                            </span>
+                        </div>
+                        <button class="btn-confirm" onclick="abrirModalCliente()" style="background: var(--text-muted); font-size: 13px; padding: 8px 14px;">
+                            🔍 Cambiar Cliente
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 style="margin:0;">Venta en curso</h3>
+                        <button class="btn-confirm" onclick="abrirBuscador()" style="background:var(--accent);">+ Agregar Producto</button>
+                    </div>
+
+                    <table class="ticket-table" style="width:100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="text-align:left; border-bottom: 1px solid var(--border);">
+                                <th style="padding:10px 5px;">Producto</th>
+                                <th>Cant.</th>
+                                <th>Precio</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticket-body"></tbody>
+                    </table>
+                </div>
+                
+                <div class="totals-section" style="background: var(--header-bg); color: white; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
+                    <div class="last-sale" style="opacity: 0.7; font-size: 14px;">Última venta: $${totalVentaAnterior.toFixed(2)}</div>
+                    <div class="current-total" style="margin: 20px 0;">
+                        <label style="display:block; font-size: 11px; opacity:0.6; font-weight:800; letter-spacing:1px;">TOTAL A COBRAR</label>
+                        <span id="display-total" style="font-size: 36px; font-weight: 800; display:block; margin-top:5px;">$0.00</span>
+                    </div>
+                    <button class="btn-vender" onclick="registrarVenta()" style="background: var(--accent); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 16px;">
+                        🎰 REGISTRAR VENTA
+                    </button>
+                </div>
+            </div>
+        `;
+        actualizarVistaTicket();
+    }
+    else if (tabId === 'section-productos') {
+        // Dispara tu fetch directo al inventario de Supabase
+        irAProductos();
+    }
+    else if (tabId === 'section-reportes') {
+        // Dispara tu fetch para traer las ventas históricas de Supabase
+        irAReportes();
+    }
 }
 
-// Limpieza de sesión para salir del sistema de forma segura
+// Limpieza absoluta de sesión para salir del sistema de forma segura
 function cerrarSesion() {
     localStorage.removeItem('usuario');
-    alert("Sesión cerrada correctamente.");
+    usuarioActual = null;
+    alert("Sesión finalizada. Volviendo al login.");
     window.location.href = "login.html";
 }
