@@ -35,35 +35,36 @@ function cerrarBuscador() {
 
 // 3. LÓGICA DE LOGIN
 async function ejecutarLogin() {
+    // Corregidos los IDs para que coincidan exactamente con login.html
     const curpInput = document.getElementById('login-curp');
     const passwordInput = document.getElementById('login-password');
     const errorMsg = document.getElementById('login-error');
     
-    // Extraemos los valores de forma segura
-    const curp = curpInput ? curpInput.value.trim() : '';
-    const password = passwordInput ? passwordInput.value : '';
+    const valorCurp = curpInput ? curpInput.value.trim() : '';
+    const valorPassword = passwordInput ? passwordInput.value.trim() : '';
     
-    if (!curp || !password) {
+    if (!valorCurp || !valorPassword) {
         alert("Por favor, ingresa tu CURP y contraseña.");
         return;
     }
 
-    // Ajustamos la URL dinámicamente para que lleve /api de forma correcta
+    // Ajuste dinámico de la URL por si acaso
     let urlBase = API_URL.replace(/\/+$/, ""); 
     if (!urlBase.endsWith('/api')) {
         urlBase += '/api';
     }
 
     try {
-        console.log(`Enviando credenciales a: ${urlBase}/login`);
-
         const respuesta = await fetch(`${urlBase}/login`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Accept': 'application/json' // <-- Agrega esta línea crucial para el handshake de CORS
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({ curp: curp, password: password })
+            body: JSON.stringify({
+                curp: valorCurp,
+                password: valorPassword
+            })
         });
 
         const data = await respuesta.json();
@@ -82,26 +83,15 @@ async function ejecutarLogin() {
         if (errorMsg) errorMsg.classList.add('hidden');
         
         alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
-        console.log("Datos del usuario logueado:", data);
+        
+        // Guardamos la sesión en localStorage para que persista entre páginas si es necesario
+        localStorage.setItem('usuario', JSON.stringify(data));
 
-        // Si existe un contenedor para renderizar el panel privado, lo montamos
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) {
-            document.getElementById('user-profile').classList.remove('hidden');
-            document.getElementById('main-nav').classList.remove('hidden');
-            
-            const nombreCompleto = data.persona ? `${data.persona.nombre} ${data.persona.apellidos}` : "Usuario"; 
-            document.getElementById('user-display-name').innerText = `${data.rol}: ${nombreCompleto}`;
-            
-            if (data.rol.toLowerCase().trim() === 'almacenista') {
-                irAProductos();
-            } else {
-                irAVentas();
-            }
-        }
+        // Redirección al panel principal o manejo de la interfaz
+        window.location.href = "index.html"; 
 
     } catch (e) {
-        console.error("Error al intentar loguear:", e);
+        console.error("Error de comunicación:", e);
         alert("Error de conexión con el servidor: " + e.message);
     }
 }
