@@ -88,7 +88,7 @@ async function ejecutarLogin() {
         localStorage.setItem('usuario', JSON.stringify(data));
 
         // Redirección al panel principal o manejo de la interfaz
-        window.location.href = "index.html"; 
+        window.location.href = "panel.html";
 
     } catch (e) {
         console.error("Error de comunicación:", e);
