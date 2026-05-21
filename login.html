@@ -24,7 +24,7 @@
                 <h1>Inicia sesión en tu papelería digital</h1>
                 <p>Accede al panel de ventas, control de inventario y reportes como si fuera tu tienda en línea favorita.</p>
             </div>
-            <form id="login-form" class="login-form">
+            <form id="login-form" class="login-form" onsubmit="event.preventDefault(); ejecutarLogin();">
                 <label>CURP del trabajador</label>
                 <input id="login-curp" type="text" placeholder="Ej. GARC850101HDFABC01" autocomplete="off">
                 <label>Contraseña</label>
