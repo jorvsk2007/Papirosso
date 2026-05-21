@@ -34,12 +34,13 @@ function cerrarBuscador() {
 }
 
 // 3. LÓGICA DE LOGIN
+// 3. LÓGICA DE LOGIN
 async function ejecutarLogin() {
-    // Corregimos los IDs para que coincidan con login.html
     const curpInput = document.getElementById('login-curp');
     const passwordInput = document.getElementById('login-password');
-    const errorMsg = document.getElementById('login-error'); // En tu HTML es 'login-error', no 'login-error-msg'
+    const errorMsg = document.getElementById('login-error');
     
+    // Extraemos los valores de forma segura
     const curp = curpInput ? curpInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
     
@@ -48,67 +49,61 @@ async function ejecutarLogin() {
         return;
     }
 
-    // 1. LIMPIEZA DE URL (Para evitar el 404)
-    // Eliminamos cualquier diagonal al final y nos aseguramos de que termine en /api
+    // Ajustamos la URL dinámicamente para que lleve /api de forma correcta
     let urlBase = API_URL.replace(/\/+$/, ""); 
     if (!urlBase.endsWith('/api')) {
         urlBase += '/api';
     }
 
     try {
-        console.log(`Intententando hacer el login en la base`); // Para que veas la ruta real en consola
+        console.log(`Enviando credenciales a: ${urlBase}/login`);
 
         const respuesta = await fetch(`${urlBase}/login`, {
             method: 'POST',
             headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json' 
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ curp })
+            // Aseguramos que los nombres coincidan exactamente con lo que espera el backend
+            body: JSON.stringify({ curp: curp, password: password })
         });
-
-        // 2. VERIFICACIÓN DE TIPO DE RESPUESTA
-        // Si el servidor responde con HTML (error 404), esto evitará el error de "Unexpected token <"
-        const contentType = respuesta.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            const textoError = await respuesta.text();
-            console.error("Respuesta no es JSON:", textoError);
-            throw new Error("El servidor no respondió con JSON. Revisa la URL de la API.");
-        }
 
         const data = await respuesta.json();
 
         if (!respuesta.ok) {
-            errorMsg.classList.remove('hidden');
-            alert(data.error || "Error en el login");
+            if (errorMsg) {
+                errorMsg.innerText = data.error || "Error en las credenciales.";
+                errorMsg.classList.remove('hidden');
+            }
+            alert(data.error || "Error en las credenciales.");
             return;
         }
 
-        // 3. ÉXITO EN EL LOGIN
+        // LOGIN EXITOSO
         usuarioActual = data;
+        if (errorMsg) errorMsg.classList.add('hidden');
         
-        // UI Updates
-        document.getElementById('modal-login').classList.add('hidden');
-        document.getElementById('btn-login-trigger').classList.add('hidden');
-        document.getElementById('user-profile').classList.remove('hidden');
-        document.getElementById('main-nav').classList.remove('hidden');
-        
-        const nombreCompleto = data.persona ? data.persona.nombre : "Usuario"; 
-        document.getElementById('user-display-name').innerText = `${data.rol}: ${nombreCompleto}`;
-        
-        // Navegación según rol
-        const rol = data.rol.toLowerCase().trim();
-        if (rol === 'almacenista') {
-            irAProductos();
-        } else {
-            irAVentas();
+        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+        console.log("Datos del usuario logueado:", data);
+
+        // Si existe un contenedor para renderizar el panel privado, lo montamos
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            document.getElementById('user-profile').classList.remove('hidden');
+            document.getElementById('main-nav').classList.remove('hidden');
+            
+            const nombreCompleto = data.persona ? `${data.persona.nombre} ${data.persona.apellidos}` : "Usuario"; 
+            document.getElementById('user-display-name').innerText = `${data.rol}: ${nombreCompleto}`;
+            
+            if (data.rol.toLowerCase().trim() === 'almacenista') {
+                irAProductos();
+            } else {
+                irAVentas();
+            }
         }
 
-        alert(`¡Bienvenido ${nombreCompleto}!`);
-
     } catch (e) {
-        console.error("Error detallado:", e);
-        alert("Error conectando al servidor: " + e.message);
+        console.error("Error al intentar loguear:", e);
+        alert("Error de conexión con el servidor: " + e.message);
     }
 }
 
