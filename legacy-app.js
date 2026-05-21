@@ -35,12 +35,16 @@ function cerrarBuscador() {
 
 // 3. LÓGICA DE LOGIN
 async function ejecutarLogin() {
-    const curpInput = document.getElementById('input-curp');
-    const curp = curpInput.value.trim();
-    const errorMsg = document.getElementById('login-error-msg');
+    // Corregimos los IDs para que coincidan con login.html
+    const curpInput = document.getElementById('login-curp');
+    const passwordInput = document.getElementById('login-password');
+    const errorMsg = document.getElementById('login-error'); // En tu HTML es 'login-error', no 'login-error-msg'
     
-    if (!curp) {
-        alert("Por favor, ingresa tu CURP.");
+    const curp = curpInput ? curpInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+    
+    if (!curp || !password) {
+        alert("Por favor, ingresa tu CURP y contraseña.");
         return;
     }
 
