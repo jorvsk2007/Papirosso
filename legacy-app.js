@@ -34,7 +34,6 @@ function cerrarBuscador() {
 }
 
 // 3. LÓGICA DE LOGIN
-// 3. LÓGICA DE LOGIN
 async function ejecutarLogin() {
     const curpInput = document.getElementById('login-curp');
     const passwordInput = document.getElementById('login-password');
@@ -61,9 +60,9 @@ async function ejecutarLogin() {
         const respuesta = await fetch(`${urlBase}/login`, {
             method: 'POST',
             headers: { 
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json' // <-- Agrega esta línea crucial para el handshake de CORS
             },
-            // Aseguramos que los nombres coincidan exactamente con lo que espera el backend
             body: JSON.stringify({ curp: curp, password: password })
         });
 
