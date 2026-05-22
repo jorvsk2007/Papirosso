@@ -302,6 +302,7 @@ async function irAProductos() {
             }
             productGrid.innerHTML = data.map(p => {
                 // Buscamos si el usuario ya tiene este producto en el carrito temporal
+                // Cambiar item.id_producto por item.id
                 const itemEnCarrito = carrito.find(item => item.id === p.id_producto);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
                 
