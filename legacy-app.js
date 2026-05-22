@@ -948,31 +948,94 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =======================================================
-// LÓGICA COMPLEMENTARIA PARA LA TIENDA PÚBLICA (ONLINE)
+// 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (VERSION RESTAURADA)
 // =======================================================
 
-// 1. Función para añadir un artículo al carrito
-function añadirAlCarrito(id_producto, nombre, precio, stockMaximo) {
-    // Verificar si el producto ya está en el carrito
-    const itemExistente = carrito.find(item => item.id_producto === id_producto);
-
-    if (itemExistente) {
-        if (itemExistente.cantidad >= stockMaximo) {
-            alert(`Lo sentimos, solo quedan ${stockMaximo} piezas disponibles de este producto.`);
+function añadirAlCarrito(id, nombre, precio, stockDisponible) {
+    // 1. Buscamos por id_producto (clave primaria)
+    const index = carrito.findIndex(item => item.id_producto === id);
+    
+    if (index !== -1) {
+        if (stockDisponible !== undefined && carrito[index].cantidad >= stockDisponible) {
+            alert("⚠️ Stock insuficiente.");
             return;
         }
-        itemExistente.cantidad++;
+        carrito[index].cantidad++;
     } else {
-        // Insertarlo por primera vez al arreglo global
-        carrito.push({
-            id_producto: id_producto,
-            nombre: nombre,
-            precio: parseFloat(precio),
-            cantidad: 1
+        carrito.push({ 
+            id_producto: id, 
+            nombre: nombre, 
+            precio: parseFloat(precio), 
+            cantidad: 1, 
+            stockMax: stockDisponible 
         });
     }
 
-    actualizarInterfazCarritoPublico();
+    // 2. FORZAR CIERRE DE MODALES (Búsqueda y Cliente)
+    const modals = [document.getElementById('modal-busqueda'), document.getElementById('modal-cliente')];
+    modals.forEach(m => { if (m) m.classList.add('hidden'); });
+
+    // 3. REFRESCO DE INTERFAZ
+    // Forzamos el repintado independientemente de la vista activa
+    actualizarVistaTicket();
+    if (typeof actualizarInterfazCarritoPublico === "function") {
+        actualizarInterfazCarritoPublico();
+    }
+}
+
+function actualizarVistaTicket() {
+    const body = document.getElementById('ticket-body');
+    const displayTotal = document.getElementById('display-total');
+    
+    // Si no existe el cuerpo de la tabla en esta vista, no lanzamos error, solo salimos
+    if (!body) return;
+
+    if (carrito.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400 font-medium">🛒 El ticket está vacío.</td></tr>';
+        if (displayTotal) displayTotal.innerText = "$0.00";
+        return;
+    }
+
+    let sumaTotal = 0;
+    body.innerHTML = carrito.map((item, idx) => {
+        const subtotal = item.precio * item.cantidad;
+        sumaTotal += subtotal;
+        return `
+            <tr class="border-b border-slate-100">
+                <td class="py-3 px-2 font-semibold text-slate-800">${item.nombre}</td>
+                <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="cambiarCantidad(${idx}, -1)" class="bg-slate-100 hover:bg-slate-200 w-6 h-6 rounded font-bold">-</button>
+                        <span class="w-4 text-center font-bold">${item.cantidad}</span>
+                        <button onclick="cambiarCantidad(${idx}, 1)" class="bg-slate-100 hover:bg-slate-200 w-6 h-6 rounded font-bold">+</button>
+                    </div>
+                </td>
+                <td class="py-3 px-2 text-slate-500">$${parseFloat(item.precio).toFixed(2)}</td>
+                <td class="py-3 px-2 font-bold text-slate-800">$${subtotal.toFixed(2)}</td>
+                <td class="py-3 px-2 text-center">
+                    <button onclick="quitarDelCarrito(${idx})" class="text-rose-500 hover:text-rose-700 font-bold">✖</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (displayTotal) displayTotal.innerText = `$${sumaTotal.toFixed(2)}`;
+}
+
+function quitarDelCarrito(index) {
+    carrito.splice(index, 1);
+    actualizarVistaTicket();
+}
+
+function cambiarCantidad(idx, delta) {
+    if (!carrito[idx]) return;
+    const nuevoValor = carrito[idx].cantidad + delta;
+    if (nuevoValor <= 0) {
+        quitarDelCarrito(idx);
+    } else {
+        carrito[idx].cantidad = nuevoValor;
+        actualizarVistaTicket();
+    }
 }
 
 // 2. Función para redibujar la barra lateral del carrito
