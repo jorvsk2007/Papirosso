@@ -299,7 +299,7 @@ async function irAProductos() {
             }
             productGrid.innerHTML = data.map(p => {
                 // UNIFICACIÓN CRÍTICA: Buscamos en el carrito usando item.id
-                const itemEnCarrito = carrito.find(item => item.id === p.id_producto);
+                const itemEnCarrito = carrito.find(item => item.id_producto === p.id_producto);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
                 
                 const stockDisponibleReal = p.cant_exist - cantidadEnCarrito;
