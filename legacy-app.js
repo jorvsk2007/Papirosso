@@ -9,7 +9,16 @@ let usuarioActual = null;
 let carrito = [];
 let totalVentaAnterior = 0;
 let clienteSeleccionado = null; 
-let clientesLocalesPanel = []; // Almacén para el buscador del panel de clientes
+let clientesLocalesPanel = []; // Almacén para el buscador de la pestaña de clientes
+
+// Función auxiliar para garantizar que todas las consultas apunten al prefijo /api correctamente
+function obtenerUrlBaseAPI() {
+    let urlBase = API_URL.replace(/\/+$/, ""); 
+    if (!urlBase.endsWith('/api')) {
+        urlBase += '/api';
+    }
+    return urlBase;
+}
 
 // ==========================================
 // 2. FUNCIONES DE INTERFAZ (MODALES Y MENÚS)
@@ -24,18 +33,24 @@ function cerrarLogin() {
     document.getElementById('login-error-msg').classList.add('hidden');
 }
 
+// Control del menú desplegable de usuario
 function toggleDropdown() {
-    document.getElementById('user-dropdown').classList.toggle('hidden');
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) dropdown.classList.toggle('hidden');
 }
 
 function abrirBuscador() {
-    document.getElementById('modal-busqueda').classList.remove('hidden');
-    document.getElementById('search-input').value = '';
-    filtrarProductos(''); 
+    const modalBusqueda = document.getElementById('modal-busqueda');
+    if (modalBusqueda) {
+        modalBusqueda.classList.remove('hidden');
+        document.getElementById('search-input').value = '';
+        filtrarProductos(''); 
+    }
 }
 
 function cerrarBuscador() {
-    document.getElementById('modal-busqueda').classList.add('hidden');
+    const modalBusqueda = document.getElementById('modal-busqueda');
+    if (modalBusqueda) modalBusqueda.classList.add('hidden');
 }
 
 // ==========================================
@@ -54,10 +69,7 @@ async function ejecutarLogin() {
         return;
     }
 
-    let urlBase = API_URL.replace(/\/+$/, ""); 
-    if (!urlBase.endsWith('/api')) {
-        urlBase += '/api';
-    }
+    const urlBase = obtenerUrlBaseAPI();
 
     try {
         const respuesta = await fetch(`${urlBase}/login`, {
@@ -123,21 +135,21 @@ function verificarPermisosPanel() {
         userDisplay.innerText = `${usuarioActual.rol}: ${nombreCompleto}`;
     }
 
-    // CONTROL VISUAL POR ROLES AL ENTRAR
+    // CONTROL VISUAL POR ROLES AL ENTRAR Y ASIGNACIÓN DE PESTAÑA INICIAL
     if (rol === 'administrador' || rol === 'admin') {
         switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
     else if (rol === 'cajero') {
         ocultarElemento('nav-productos');
         ocultarElemento('nav-clientes');
-        ocultarElemento('nav-registro'); 
+        ocultarElemento('nav-text-registro'); 
         switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
     else if (rol === 'almacenista') {
         ocultarElemento('nav-ventas');
         ocultarElemento('nav-clientes');
         ocultarElemento('nav-reportes');
-        ocultarElemento('nav-registro'); 
+        ocultarElemento('nav-text-registro'); 
         switchTab('section-productos', document.getElementById('nav-productos'));
     }
 }
@@ -150,7 +162,7 @@ function ocultarElemento(id) {
 function switchTab(tabId, botonActivado) {
     const rolActual = usuarioActual && usuarioActual.rol ? usuarioActual.rol.toLowerCase().trim() : '';
 
-    // PROTECCIÓN DE SEGURIDAD EN NAVEGACIÓN
+    // PROTECCIÓN DE SEGURIDAD EN NAVEGACIÓN SEGÚN EL ROL DE LA BD
     if (tabId === 'section-reportes' && rolActual !== 'admin' && rolActual !== 'administrador') {
         alert("Acceso Denegado. Módulo reservado para Administradores.");
         return;
@@ -164,59 +176,60 @@ function switchTab(tabId, botonActivado) {
         return;
     }
 
-    // Estilo de enlaces activos
+    // Estilo visual de enlaces activos en el Navbar
     document.querySelectorAll('.hero-nav a').forEach(btn => { if (btn) btn.classList.remove('active'); });
     if (botonActivado) botonActivado.classList.add('active');
 
-    // Cambiar de pestaña
+    // Ocultar y mostrar la pestaña correspondiente
     const contenidos = document.querySelectorAll('.tab-content');
     contenidos.forEach(c => c.classList.add('hidden'));
 
     const pestañaActiva = document.getElementById(tabId);
     if (pestañaActiva) pestañaActiva.classList.remove('hidden');
 
-    // CARGA DE DATOS DINÁMICOS SEGÚN LA PESTAÑA ACTIVA
+    // DISPARAR CONSULTAS AL BACKEND CORRESPONDIENTES A CADA MÓDULO
     if (tabId === 'section-ventas') {
         const contenedorVentas = document.getElementById('section-ventas');
         contenedorVentas.innerHTML = `
-            <h2>🛒 Punto de Venta (Módulo de Cobro)</h2>
-            <div class="ventas-view" style="display: grid; grid-template-columns: 1fr 320px; gap: 20px; margin-top: 20px;">
-                <div class="ticket-section" style="background: white; padding: 24px; border-radius: 16px; border: 1px solid var(--border);">
-                    <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
+            <h2 class="text-2xl font-extrabold tracking-tight mb-2">🛒 Punto de Venta (Módulo de Cobro)</h2>
+            <p class="text-sm text-slate-500 mb-6">Genera un nuevo ticket de compra asociando artículos de la tienda.</p>
+            <div class="ventas-view style="display: grid;" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="ticket-section lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="bg-slate-50 p-4 rounded-xl mb-6 flex justify-between items-center border border-slate-200">
                         <div>
-                            <small style="display:block; color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:bold;">Cliente asignado:</small>
-                            <span id="cliente-info-display" style="font-weight: 600; color: var(--text-main);">
+                            <small class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cliente asignado:</small>
+                            <span id="cliente-info-display" class="font-bold text-slate-800">
                                 ${clienteSeleccionado ? clienteSeleccionado : 'Público General'}
                             </span>
                         </div>
-                        <button class="btn-confirm" onclick="abrirModalCliente()" style="background: var(--text-muted); font-size: 13px; padding: 8px 14px;">
+                        <button class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs py-2 px-4 rounded-lg transition" onclick="abrirModalCliente()">
                             🔍 Cambiar Cliente
                         </button>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                        <h3 style="margin:0;">Venta en curso</h3>
-                        <button class="btn-confirm" onclick="abrirBuscador()">+ Agregar Producto</button>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 text-lg">Artículos en la venta en curso</h3>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-4 rounded-xl transition" onclick="abrirBuscador()">+ Agregar Producto</button>
                     </div>
-                    <table class="ticket-table" style="width:100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="text-align:left; border-bottom: 1px solid var(--border);">
-                                <th style="padding:10px 5px;">Producto</th>
-                                <th>Cant.</th>
-                                <th>Precio</th>
-                                <th>Subtotal</th>
-                                <th></th>
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-2">Producto</th>
+                                <th class="py-3 px-2">Cant.</th>
+                                <th class="py-3 px-2">Precio</th>
+                                <th class="py-3 px-2">Subtotal</th>
+                                <th class="py-3 px-2 text-center">Remover</th>
                             </tr>
                         </thead>
-                        <tbody id="ticket-body"></tbody>
+                        <tbody id="ticket-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
                     </table>
                 </div>
-                <div class="totals-section" style="background: var(--header-bg); color: white; padding: 24px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 280px;">
-                    <div class="last-sale" style="opacity: 0.7; font-size: 14px;">Última venta: $${totalVentaAnterior.toFixed(2)}</div>
-                    <div class="current-total" style="margin: 20px 0;">
-                        <label style="display:block; font-size: 11px; opacity:0.6; font-weight:800; letter-spacing:1px;">TOTAL A COBRAR</label>
-                        <span id="display-total" style="font-size: 36px; font-weight: 800; display:block; margin-top:5px;">$0.00</span>
+                <div class="totals-section bg-slate-900 text-white p-6 rounded-2xl flex flex-col justify-between min-height-[280px] shadow-lg">
+                    <div class="last-sale text-slate-400 text-xs font-semibold">Última venta procesada: $${totalVentaAnterior.toFixed(2)}</div>
+                    <div class="current-total my-6">
+                        <label class="block text-[11px] font-bold tracking-widest text-slate-400 uppercase">TOTAL A LIQUIDAR</label>
+                        <span id="display-total" class="text-4xl font-black text-emerald-400 block mt-1">$0.00</span>
                     </div>
-                    <button class="btn-vender" onclick="registrarVenta()" style="background: var(--accent); color: white; width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; font-size: 16px;">
+                    <button class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 px-4 rounded-xl tracking-wide text-center transition" onclick="registrarVenta()">
                         🎰 REGISTRAR VENTA
                     </button>
                 </div>
@@ -241,54 +254,38 @@ function switchTab(tabId, botonActivado) {
 async function irAProductos() {
     const tablaBody = document.getElementById('inventario-tabla-body');
     const btnContainer = document.getElementById('btn-nuevo-producto-container');
-    const gridPublico = document.getElementById('product-grid');
+    const urlBase = obtenerUrlBaseAPI();
     
     try {
-        const respuesta = await fetch(`${API_URL}/productos`);
+        const respuesta = await fetch(`${urlBase}/productos`);
         const data = await respuesta.json();
-
-        if (gridPublico) {
-            if (!data || data.length === 0) {
-                gridPublico.innerHTML = '<p class="no-products">No hay productos disponibles.</p>';
-                return;
-            }
-            gridPublico.innerHTML = data.map(p => `
-                <article class="product-card">
-                    <div class="product-info">
-                        <span class="product-id">ID: ${p.id_producto}</span>
-                        <h3>${p.nombre}</h3>
-                        <p class="price">$${p.precio.toFixed(2)}</p>
-                        <p class="stock ${p.cant_exist <= 5 ? 'low-stock' : ''}">Disponibles: ${p.cant_exist}</p>
-                    </div>
-                    <button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">Añadir al carrito</button>
-                </article>`).join('');
-            return;
-        }
 
         if (tablaBody) {
             const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
             const puedeAgregar = (rol === 'admin' || rol === 'administrador' || rol === 'almacenista');
 
             if (btnContainer) {
-                btnContainer.innerHTML = puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : '';
+                btnContainer.innerHTML = puedeAgregar ? `<button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : '';
             }
 
             tablaBody.innerHTML = data.map(p => `
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding:12px 10px;"><mark style="background:#e0f2fe; color:#0369a1; padding:2px 6px; border-radius:4px; font-weight:bold;">${p.id_producto}</mark></td>
-                    <td><strong>${p.nombre}</strong></td>
-                    <td>$${p.precio.toFixed(2)}</td>
-                    <td><span style="font-weight:bold; color:${p.cant_exist <= 5 ? 'red' : 'green'}">${p.cant_exist} pzas</span></td>
+                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                    <td class="px-6 py-4"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-mono font-bold text-xs">${p.id_producto}</span></td>
+                    <td class="px-6 py-4 font-semibold text-slate-800">${p.nombre}</td>
+                    <td class="px-6 py-4 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
+                    <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded'}">${p.cant_exist} pzas</span></td>
                 </tr>`).join('');
         }
     } catch (e) { 
         console.error("Error al cargar productos", e); 
+        if (tablaBody) tablaBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error al conectar con el servidor.</td></tr>';
     }
 }
 
 async function filtrarProductos(termino) {
+    const urlBase = obtenerUrlBaseAPI();
     try {
-        const respuesta = await fetch(`${API_URL}/productos`);
+        const respuesta = await fetch(`${urlBase}/productos`);
         let data = await respuesta.json();
 
         if (termino) {
@@ -297,17 +294,21 @@ async function filtrarProductos(termino) {
 
         const body = document.getElementById('search-results-body');
         if (body) {
+            if (data.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Sin coincidencias en catálogo</td></tr>';
+                return;
+            }
             body.innerHTML = data.map(p => `
-                <tr>
-                    <td>${p.id_producto}</td>
-                    <td><strong>${p.nombre}</strong></td>
-                    <td>$${p.precio}</td>
-                    <td>${p.cant_exist}</td>
-                    <td><button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">Añadir</button></td>
+                <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+                    <td class="p-3 font-mono text-xs font-bold text-slate-500">${p.id_producto}</td>
+                    <td class="p-3 font-semibold text-slate-800">${p.nombre}</td>
+                    <td class="p-3 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
+                    <td class="p-3 font-bold ${p.cant_exist <= 5 ? 'text-red-500' : 'text-emerald-600'}">${p.cant_exist}</td>
+                    <td class="p-3"><button class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">Añadir</button></td>
                 </tr>
             `).join('');
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error al filtrar productos:", e); }
 }
 
 function abrirModalProducto() {
@@ -325,6 +326,7 @@ async function guardarProductoBD() {
     const nombre = document.getElementById('reg-nombre').value.trim();
     const precio = parseFloat(document.getElementById('reg-precio').value);
     const stock = parseInt(document.getElementById('reg-stock').value);
+    const urlBase = obtenerUrlBaseAPI();
 
     if (!nombre || isNaN(precio) || isNaN(stock)) {
         return alert("Por favor, llena todos los campos correctamente.");
@@ -333,7 +335,7 @@ async function guardarProductoBD() {
     const idManual = "P-" + Math.floor(Math.random() * 999);
 
     try {
-        const respuesta = await fetch(`${API_URL}/productos`, {
+        const respuesta = await fetch(`${urlBase}/productos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -363,7 +365,7 @@ function añadirAlCarrito(id, nombre, precio) {
     if (index !== -1) {
         carrito[index].cantidad++;
     } else {
-        carrito.push({ id, nombre, precio, presidential: 1, cantidad: 1 });
+        carrito.push({ id, nombre, precio, cantidad: 1 });
     }
     cerrarBuscador();
     actualizarVistaTicket();
@@ -389,23 +391,29 @@ function actualizarVistaTicket() {
     const displayTotal = document.getElementById('display-total');
     if (!body) return;
 
+    if (carrito.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400 font-medium">El ticket de cobro está vacío. Adiciona un artículo.</td></tr>';
+        if (displayTotal) displayTotal.innerText = "$0.00";
+        return;
+    }
+
     let sumaTotal = 0;
     body.innerHTML = carrito.map((item, idx) => {
         const subtotal = item.precio * item.cantidad;
         sumaTotal += subtotal;
         return `
-            <tr>
-                <td style="padding:10px 5px;">${item.nombre}</td>
-                <td>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <button onclick="cambiarCantidad(${idx}, -1)" style="width:25px; cursor:pointer;">-</button>
-                        <span>${item.cantidad}</span>
-                        <button onclick="cambiarCantidad(${idx}, 1)" style="width:25px; cursor:pointer;">+</button>
+            <tr class="border-b border-slate-100">
+                <td class="py-3 px-2 font-semibold text-slate-800">${item.nombre}</td>
+                <td class="py-3 px-2">
+                    <div class="flex items-center gap-2">
+                        <button onclick="cambiarCantidad(${idx}, -1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 transition">-</button>
+                        <span class="font-bold text-slate-800 text-sm w-4 text-center">${item.cantidad}</span>
+                        <button onclick="cambiarCantidad(${idx}, 1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 transition">+</button>
                     </div>
                 </td>
-                <td>$${item.precio.toFixed(2)}</td>
-                <td>$${subtotal.toFixed(2)}</td>
-                <td><button onclick="quitarDelCarrito(${idx})" style="color:red; border:none; background:none; cursor:pointer;">✖</button></td>
+                <td class="py-3 px-2 font-medium text-slate-500">$${parseFloat(item.precio).toFixed(2)}</td>
+                <td class="py-3 px-2 font-bold text-slate-800">$${subtotal.toFixed(2)}</td>
+                <td class="py-3 px-2 text-center"><button onclick="quitarDelCarrito(${idx})" class="text-rose-500 hover:text-rose-700 font-bold transition">✖</button></td>
             </tr>
         `;
     }).join('');
@@ -417,6 +425,7 @@ function actualizarVistaTicket() {
 
 async function registrarVenta() {
     if (carrito.length === 0) return alert("El ticket está vacío.");
+    const urlBase = obtenerUrlBaseAPI();
 
     try {
         const totalVenta = parseFloat(document.getElementById('display-total').innerText.replace('$', ''));
@@ -428,7 +437,7 @@ async function registrarVenta() {
             detalles: carrito 
         };
 
-        const respuesta = await fetch(`${API_URL}/ventas`, {
+        const respuesta = await fetch(`${urlBase}/ventas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ventaData)
@@ -455,20 +464,27 @@ async function registrarVenta() {
 async function irAReportes() {
     const tablaBody = document.getElementById('reportes-tabla-body');
     if (!tablaBody) return;
+    const urlBase = obtenerUrlBaseAPI();
     
     try {
-        const respuesta = await fetch(`${API_URL}/reportes`);
+        const respuesta = await fetch(`${urlBase}/reportes`);
         const data = await respuesta.json();
 
+        if (data.length === 0) {
+            tablaBody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 font-medium">No se registran transacciones en el historial.</td></tr>';
+            return;
+        }
+
         tablaBody.innerHTML = data.map(v => `
-            <tr style="border-bottom:1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                <td style="padding:15px 10px; font-weight:600; color:var(--primary);">#${v.id_venta}</td>
-                <td>${new Date(v.fecha).toLocaleDateString()} ${new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                <td style="font-weight:800; color:var(--accent);">$${parseFloat(v.precio_total).toFixed(2)}</td>
-                <td><small style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-family:monospace;">${v.curp_trabajador}</small></td>
+            <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+                <td class="px-6 py-4 font-bold text-blue-600">#${v.id_venta}</td>
+                <td class="px-6 py-4 text-slate-500">${new Date(v.fecha).toLocaleDateString()} ${new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                <td class="px-6 py-4 font-extrabold text-emerald-600">$${parseFloat(v.precio_total).toFixed(2)}</td>
+                <td class="px-6 py-4"><code class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-mono">${v.curp_trabajador}</code></td>
             </tr>`).join('');
     } catch (e) { 
         console.error("Error al cargar reportes", e); 
+        tablaBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error al consultar el historial de ventas.</td></tr>';
     }
 }
 
@@ -476,9 +492,10 @@ async function irAReportes() {
 // 8. CONTROL DE CLIENTES (PUNTO DE VENTA Y PANEL)
 // ==========================================
 async function abrirModalCliente() {
+    const urlBase = obtenerUrlBaseAPI();
     document.getElementById('modal-cliente').classList.remove('hidden');
     try {
-        const respuesta = await fetch(`${API_URL}/clientes`);
+        const respuesta = await fetch(`${urlBase}/clientes`);
         const clientes = await respuesta.json();
         renderizarListaClientesModal(clientes);
     } catch (e) { console.error("Error al traer clientes", e); }
@@ -489,17 +506,17 @@ function renderizarListaClientesModal(clientes) {
     if (!body) return;
     
     if (!clientes || clientes.length === 0) {
-        body.innerHTML = '<tr><td colspan="3">No hay datos</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">No hay clientes dados de alta</td></tr>';
         return;
     }
 
     body.innerHTML = clientes.map(c => {
         const nombreDisplay = c.persona ? `${c.persona.nombre} ${c.persona.apellidos}` : "Sin nombre";
         return `
-            <tr>
-                <td>${nombreDisplay}</td>
-                <td><small>${c.curp}</small></td> 
-                <td><button class="btn-confirm" onclick="fijarCliente('${c.curp}', '${c.persona?.nombre || 'Cliente'}')">Elegir</button></td>
+            <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                <td class="p-3 font-semibold text-slate-800">${nombreDisplay}</td>
+                <td class="p-3 font-mono text-xs text-slate-500">${c.curp}</td> 
+                <td class="p-3 text-right"><button class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition" onclick="fijarCliente('${c.curp}', '${c.persona?.nombre || 'Cliente'}')">Elegir</button></td>
             </tr>
         `;
     }).join('');
@@ -508,7 +525,7 @@ function renderizarListaClientesModal(clientes) {
 function fijarCliente(curp, nombre) {
     clienteSeleccionado = curp;
     const infoDisplay = document.getElementById('cliente-info-display');
-    if (infoDisplay) infoDisplay.innerText = `Cliente: ${nombre}`;
+    if (infoDisplay) infoDisplay.innerText = `Cliente: ${nombre} (${curp})`;
     cerrarModalCliente();
 }
 
@@ -524,8 +541,9 @@ function cerrarModalCliente() {
 }
 
 async function filtrarClientes(termino) {
+    const urlBase = obtenerUrlBaseAPI();
     try {
-        const respuesta = await fetch(`${API_URL}/clientes`);
+        const respuesta = await fetch(`${urlBase}/clientes`);
         const todosLosClientes = await respuesta.json();
 
         if (!termino.trim()) {
@@ -549,13 +567,15 @@ async function filtrarClientes(termino) {
 async function cargarClientesPanel() {
     const tablaBody = document.getElementById('clientes-tabla-body');
     if (!tablaBody) return;
+    const urlBase = obtenerUrlBaseAPI();
 
     try {
-        const respuesta = await fetch(`${API_URL}/clientes`);
+        const respuesta = await fetch(`${urlBase}/clientes`);
         clientesLocalesPanel = await respuesta.json();
         renderizarClientesEnPanel(clientesLocalesPanel);
     } catch (e) {
         console.error("Error cargando clientes del panel", e);
+        tablaBody.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-red-500">Error al consultar el directorio de clientes.</td></tr>';
     }
 }
 
@@ -564,13 +584,13 @@ function renderizarClientesEnPanel(lista) {
     if (!tablaBody) return;
 
     if (!lista || lista.length === 0) {
-        tablaBody.innerHTML = '<tr><td colspan="2" style="padding:20px; text-align:center;">No se encontraron clientes</td></tr>';
+        tablaBody.innerHTML = '<tr><td colspan="2" style="padding:20px; text-align:center;" class="text-slate-400">No se encontraron clientes registrados</td></tr>';
         return;
     }
     tablaBody.innerHTML = lista.map(c => `
-        <tr style="border-bottom: 1px solid var(--border);">
-            <td style="padding:12px 10px;"><strong>${c.persona ? c.persona.nombre + ' ' + c.persona.apellidos : 'Sin Nombre'}</strong></td>
-            <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">${c.curp}</code></td>
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+            <td class="px-6 py-4 font-semibold text-slate-800">${c.persona ? c.persona.nombre + ' ' + c.persona.apellidos : 'Sin Nombre'}</td>
+            <td class="px-6 py-4"><code class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-mono">${c.curp}</code></td>
         </tr>`).join('');
 }
 
@@ -605,6 +625,7 @@ function toggleCamposRegistro() {
 
 async function guardarNuevoUsuario(event) {
     event.preventDefault();
+    const urlBase = obtenerUrlBaseAPI();
 
     const tipo = document.getElementById('alta-tipo').value;
     const curp = document.getElementById('alta-curp').value.trim().toUpperCase();
@@ -629,7 +650,7 @@ async function guardarNuevoUsuario(event) {
     }
 
     try {
-        const respuesta = await fetch(`${API_URL}/usuarios/registro`, {
+        const respuesta = await fetch(`${urlBase}/usuarios/registro`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
