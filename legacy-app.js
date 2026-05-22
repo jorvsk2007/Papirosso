@@ -302,7 +302,6 @@ async function irAProductos() {
             }
             productGrid.innerHTML = data.map(p => {
                 // Buscamos si el usuario ya tiene este producto en el carrito temporal
-                // Cambiar item.id_producto por item.id
                 const itemEnCarrito = carrito.find(item => item.id === p.id_producto);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
                 
@@ -418,7 +417,9 @@ async function guardarProductoBD() {
 // LÓGICA DEL CARRITO PÚBLICO (TIENDA)
 // ==========================================
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
+    // Buscamos si ya existe el producto en el carrito temporal
     const index = carrito.findIndex(item => item.id === id);
+    
     if (index !== -1) {
         if (carrito[index].cantidad >= stockDisponible) {
             alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
@@ -430,7 +431,7 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // SOLUCIÓN AQUÍ: Guardamos explícitamente el stockMax en el objeto
+        // FORZAMOS LA ESTRUCTURA CORRECTA DEL OBJETO:
         carrito.push({ 
             id: id, 
             nombre: nombre, 
@@ -455,6 +456,7 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
+        // Si se vacía el carrito, refrescamos tarjetas de productos para regresar su stock al original
         irAProductos();
         return;
     }
@@ -463,6 +465,8 @@ function actualizarInterfazCarritoPublico() {
     contenedor.innerHTML = carrito.map(item => {
         const subtotal = item.cantidad * item.precio;
         sumaTotal += subtotal;
+        
+        // AQUÍ LEPASAMOS LAS PROPIEDADES AL INYECTAR EL HTML EN EL BOTÓN
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
                 <div style="flex: 1; padding-right: 10px;">
@@ -483,7 +487,7 @@ function actualizarInterfazCarritoPublico() {
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
 
-    // Forzamos el redibujado dinámico de las tarjetas de productos
+    // Mandamos a redibujar el panel de productos para restar lo que ya está apartado
     irAProductos();
 }
 
@@ -501,9 +505,11 @@ function cambiarCantidadCarrito(id, cambio, stockMaximo) {
         if (carrito[index].cantidad > 1) {
             carrito[index].cantidad--;
         } else {
+            // Remueve el artículo del carrito si llega a 0 piezas
             carrito.splice(index, 1);
         }
     }
+    // Volvemos a renderizar en cascada
     actualizarInterfazCarritoPublico();
 }
 
