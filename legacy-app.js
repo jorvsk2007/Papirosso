@@ -10,6 +10,7 @@ let carrito = [];
 let totalVentaAnterior = 0;
 let clienteSeleccionado = null; 
 let clientesLocalesPanel = []; // Almacén para el buscador de la pestaña de clientes
+let listaProductosGlobal = [];
 
 // Función auxiliar para garantizar que todas las consultas apunten al prefijo /api correctamente
 function obtenerUrlBaseAPI() {
