@@ -408,135 +408,66 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-// ==========================================
-// LÓGICA DEL CARRITO (PUNTO DE VENTA Y TIENDA)
-// ==========================================
-function añadirAlCarrito(idProducto, nombre, precio, stockMaximo) {
-    // Si viene de una versión vieja que no manda stockMaximo, lo dejamos pasar sin romper
-    const max = stockMaximo !== undefined ? parseInt(stockMaximo) : 999;
-
+function añadirAlCarrito(idProducto, nombre, precio, stockDisponible) {
+    // Buscamos estrictamente usando la propiedad nativa id_producto
     const index = carrito.findIndex(item => item.id_producto === idProducto);
+    
     if (index !== -1) {
-        if (carrito[index].cantidad >= max) {
-            alert(`No puedes agregar más unidades. Límite: ${max} pzas.`);
+        // Validación de stock si el admin lo provee
+        if (stockDisponible !== undefined && carrito[index].cantidad >= stockDisponible) {
+            alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
             return;
         }
         carrito[index].cantidad++;
     } else {
-        if (max <= 0) {
+        if (stockDisponible !== undefined && stockDisponible <= 0) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // GUARDAMOS CON id_producto PARA QUE EL ADMIN LO ENCUENTRE SIEMPRE
+        // Corrección del objeto nativo: Eliminamos el 'Math' erróneo que rompía el flujo
         carrito.push({ 
             id_producto: idProducto, 
             nombre: nombre, 
             precio: parseFloat(precio), 
-            cantidad: 1,
-            stockMax: max
+            cantidad: 1 
         });
     }
 
-    if (typeof cerrarBuscador === "function") {
+    // Cerramos el buscador del Punto de Venta si existe
+    const modalBusqueda = document.getElementById('modal-busqueda');
+    if (modalBusqueda && typeof cerrarBuscador === "function") {
         cerrarBuscador();
     }
     
-    // Si estamos en la tienda pública
-    if (document.getElementById('cart-items')) {
-        actualizarInterfazCarritoPublico();
-    }
-    // Si estamos en el panel admin
-    if (document.getElementById('ticket-body')) {
+    // El admin requiere actualizar exclusivamente la vista del ticket
+    if (typeof actualizarVistaTicket === "function") {
         actualizarVistaTicket();
-    }
-}
-
-function actualizarInterfazCarritoPublico() {
-    const contenedor = document.getElementById('cart-items');
-    const totalContenedor = document.getElementById('cart-total');
-    if (!contenedor) return;
-
-    if (carrito.length === 0) {
-        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
-        if (totalContenedor) totalContenedor.innerText = '$0.00';
-        irAProductos(); 
-        return;
-    }
-
-    let sumaTotal = 0;
-    contenedor.innerHTML = carrito.map(item => {
-        const subtotal = item.cantidad * item.precio;
-        sumaTotal += subtotal;
-        
-        // LOS BOTONES MANDAN A LLAMAR CON item.id_producto
-        return `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
-                <div style="flex: 1; padding-right: 10px;">
-                    <h4 style="margin: 0; font-weight: 600; color: var(--text-main);">${item.nombre}</h4>
-                    <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">-</button>
-                    <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">+</button>
-                </div>
-                <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
-                    $${subtotal.toFixed(2)}
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
-
-    // Redibuja las tarjetas para actualizar el stock visual al instante
-    irAProductos();
-}
-
-function cambiarCantidadCarrito(idProducto, cambio) {
-    const index = carrito.findIndex(item => item.id_producto === idProducto);
-    if (index === -1) return;
-
-    if (cambio > 0) {
-        if (carrito[index].stockMax && carrito[index].cantidad >= carrito[index].stockMax) {
-            alert(`Límite alcanzado. Existencias máximas: ${carrito[index].stockMax}`);
-            return;
-        }
-        carrito[index].cantidad++;
-    } else {
-        if (carrito[index].cantidad > 1) {
-            carrito[index].cantidad--;
-        } else {
-            carrito.splice(index, 1);
-        }
-    }
-    actualizarInterfazCarritoPublico();
-}
-
-function limpiarCarritoCliente() {
-    carrito = [];
-    if (document.getElementById('cart-items')) {
-        actualizarInterfazCarritoPublico();
     }
 }
 
 function quitarDelCarrito(index) {
     carrito.splice(index, 1);
-    actualizarVistaTicket();
+    if (typeof actualizarVistaTicket === "function") {
+        actualizarVistaTicket();
+    }
 }
 
 function cambiarCantidad(idx, delta) {
+    if (!carrito[idx]) return;
     const nuevoValor = carrito[idx].cantidad + delta;
-    
     if (nuevoValor <= 0) {
         quitarDelCarrito(idx);
     } else {
-        // Validamos contra el stockMax guardado en el paso anterior
-        if (delta > 0 && nuevoValor > carrito[idx].stockMax) {
-            alert(`Límite alcanzado. Solo hay ${carrito[idx].stockMax} unidades disponibles en inventario.`);
-            return;
-        }
         carrito[idx].cantidad = nuevoValor;
+        if (typeof actualizarVistaTicket === "function") {
+            actualizarVistaTicket();
+        }
+    }
+}
+
+function limpiarCarritoCliente() {
+    carrito = [];
+    if (typeof actualizarVistaTicket === "function") {
         actualizarVistaTicket();
     }
 }
