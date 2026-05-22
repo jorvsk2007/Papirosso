@@ -101,35 +101,50 @@ app.get('/api/clientes', async (req, res) => {
 // --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
-    
+
     try {
-        // 1. Generamos el folio exactamente como lo necesitas
+        // 1. GENERAR FOLIO
         const folioVenta = `#VTA-2026-${Math.floor(Math.random() * 999)}`;
 
-        // 2. Insertamos en 'ventas' (Asegúrate de que 'id_venta' sea tipo TEXT en tu BD)
-        const { data: venta, error: errVenta } = await supabase
-            .from('ventas')
-            .insert([{
-                id_venta: folioVenta, // Aquí va el texto: "#VTA-2026-XXX"
-                precio_total: parseFloat(precio_total),
-                curp_cliente: curp_cliente,
-                curp_trabajador: curp_trabajador,
-                fecha: new Date().toISOString()
-            }])
-            .select();
-
+        // 2. INSERTAR VENTA
+        const { error: errVenta } = await supabase.from('ventas').insert([{
+            id_venta: folioVenta,
+            precio_total: parseFloat(precio_total),
+            curp_cliente: curp_cliente,
+            curp_trabajador: curp_trabajador,
+            fecha: new Date().toISOString()
+        }]);
         if (errVenta) throw errVenta;
 
-        // 3. Insertar detalles
+        // 3. PROCESAR CADA PRODUCTO
         for (const item of detalles) {
-            // IMPORTANTE: id_detalle debe ser INT4 (entero). 
-            // Si el error de "out of range" persiste, es porque le estás pasando 
-            // un número gigante aquí. Usa Math.random() limitado:
-            const idDetalleSeguro = Math.floor(Math.random() * 1000000); 
+            // A. CONSULTAR STOCK ACTUAL
+            const { data: producto, error: errFetch } = await supabase
+                .from('producto')
+                .select('cant_exist')
+                .eq('id_producto', item.id_producto)
+                .single();
 
+            if (errFetch || !producto) throw new Error(`Producto ${item.id_producto} no encontrado.`);
+
+            // B. VALIDAR SI HAY SUFICIENTE (Esto evita que baje de 0)
+            if (producto.cant_exist < item.cantidad) {
+                throw new Error(`Stock insuficiente para ${item.nombre}. Quedan: ${producto.cant_exist}`);
+            }
+
+            // C. ACTUALIZAR STOCK
+            const nuevoStock = producto.cant_exist - item.cantidad;
+            const { error: errUpdate } = await supabase
+                .from('producto')
+                .update({ cant_exist: nuevoStock })
+                .eq('id_producto', item.id_producto);
+            
+            if (errUpdate) throw errUpdate;
+
+            // D. INSERTAR DETALLE
             await supabase.from('detalle_venta').insert([{
-                id_detalle: idDetalleSeguro, 
-                id_venta: folioVenta, // Usamos el mismo texto de arriba
+                id_detalle: Math.floor(Math.random() * 1000000),
+                id_venta: folioVenta,
                 id_producto: item.id_producto,
                 cantidad: item.cantidad,
                 precio_unitario: item.precio
@@ -139,7 +154,7 @@ app.post('/api/ventas', async (req, res) => {
         return res.status(201).json({ id_venta: folioVenta });
 
     } catch (err) {
-        console.error("Error al guardar:", err);
+        console.error("Error en la transacción:", err);
         return res.status(400).json({ error: err.message });
     }
 });
