@@ -514,12 +514,14 @@ async function registrarVenta() {
     const urlBase = obtenerUrlBaseAPI();
 
     try {
-        const totalVenta = parseFloat(document.getElementById('display-total').innerText.replace('$', ''));
+        // Obtenemos el total sin el símbolo '$'
+        const totalVenta = parseFloat(document.getElementById('display-total').innerText.replace('$', '').replace(',', ''));
         
-        // Mapeamos el carrito asegurando que viaje tanto "id" como "id_producto" de forma segura
+        // Mapeo estricto para evitar el error 400
+        // Aseguramos que cada objeto tenga 'id' (o 'id_producto') según lo que el backend requiere
         const detallesFormateados = carrito.map(item => ({
-            id: item.id,
-            id_producto: item.id,
+            id: item.id_producto,           // Cambiado: usamos el ID que guardamos en el carrito
+            id_producto: item.id_producto,  // Enviamos ambos por seguridad
             nombre: item.nombre,
             precio: parseFloat(item.precio),
             cantidad: parseInt(item.cantidad)
@@ -527,10 +529,12 @@ async function registrarVenta() {
 
         const ventaData = {
             precio_total: totalVenta,
-            curp_cliente: clienteSeleccionado,
-            curp_trabajador: usuarioActual.curp,
+            curp_cliente: clienteSeleccionado, // Puede ser null
+            curp_trabajador: usuarioActual ? usuarioActual.curp : 'ADMIN', // Seguridad extra
             detalles: detallesFormateados
         };
+
+        console.log("Enviando venta:", JSON.stringify(ventaData)); // Útil para depurar en consola
 
         const respuesta = await fetch(`${urlBase}/ventas`, {
             method: 'POST',
@@ -541,15 +545,17 @@ async function registrarVenta() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("Venta registrada con éxito: " + (resultado.id_venta || "OK"));
+            alert("✅ Venta registrada con éxito: " + (resultado.id_venta || "OK"));
             totalVentaAnterior = totalVenta;
-            carrito = [];
-            switchTab('section-ventas', document.getElementById('nav-ventas'));
+            carrito = []; // Limpiamos el carrito local
+            actualizarVistaTicket(); // Refrescamos la vista inmediatamente
         } else {
-            throw new Error(resultado.error);
+            // Esto mostrará el error real que viene del servidor (el detalle del 400)
+            throw new Error(resultado.error || "Error desconocido al registrar la venta");
         }
     } catch (err) {
-        alert("No se pudo registrar: " + err.message);
+        console.error("Detalle del error 400:", err);
+        alert("No se pudo registrar la venta: " + err.message);
     }
 }
 
