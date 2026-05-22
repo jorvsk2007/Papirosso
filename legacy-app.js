@@ -1030,17 +1030,118 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function verificarSesionPublica() {
-    const sesion = localStorage.getItem('usuario');
-    const btnMisCompras = document.getElementById('btn-mis-compras');
-    
-    if (sesion) {
-        const usuario = JSON.parse(sesion);
-        usuarioActual = usuario; // Mapear al estado global
-        
-        if (btnMisCompras) btnMisCompras.classList.remove('hidden');
-        // ... (el resto del código que ya tienes para mostrar el CURP y ocultar el login)
-    } else {
-        if (btnMisCompras) btnMisCompras.classList.add('hidden');
+// Cambia la interfaz para ver la tabla de compras del cliente logueado
+async function verMisCompras() {
+    if (!usuarioActual || !usuarioActual.curp) {
+        alert("Por favor inicia sesión para ver tus compras.");
+        return;
     }
+
+    // Ocultar catálogo y carrito
+    document.getElementById('product-grid').classList.add('hidden');
+    const cartPanel = document.querySelector('.cart-panel');
+    if (cartPanel) cartPanel.classList.add('hidden');
+    const searchSection = document.querySelector('.store-hero');
+    if (searchSection) searchSection.classList.add('hidden');
+
+    // Mostrar sección de compras
+    const comprasSection = document.getElementById('compras-cliente-section');
+    comprasSection.classList.remove('hidden');
+
+    const bodyTabla = document.getElementById('compras-cliente-body');
+    bodyTabla.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Cargando tus compras...</td></tr>';
+
+    const urlBase = obtenerUrlBaseAPI();
+
+    try {
+        const respuesta = await fetch(`${urlBase}/clientes/${usuarioActual.curp}/compras`);
+        const compras = await respuesta.json();
+
+        if (compras.length === 0) {
+            bodyTabla.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 font-medium">Aún no has registrado ninguna compra en la sucursal.</td></tr>';
+            return;
+        }
+
+        bodyTabla.innerHTML = compras.map(c => {
+            const fechaFormateada = new Date(c.fecha).toLocaleString('es-MX', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            });
+
+            return `
+                <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
+                    <td class="px-4 py-3 font-bold text-blue-600 font-mono text-sm">${c.id_venta}</td>
+                    <td class="px-4 py-3 text-slate-500 text-xs">${fechaFormateada}</td>
+                    <td class="px-4 py-3 font-extrabold text-emerald-600">$${parseFloat(c.precio_total).toFixed(2)}</td>
+                    <td class="px-4 py-3 text-center">
+                        <button onclick="verDetalleTicket('${c.id_venta}', '${fechaFormateada}', ${c.precio_total})" 
+                            class="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white font-bold text-xs transition">
+                            👁️ Ver Ticket
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error(err);
+        bodyTabla.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error al consultar el historial.</td></tr>';
+    }
+}
+
+// Regresa al catálogo clásico de la tienda pública
+function regresarATiendaPublica() {
+    document.getElementById('compras-cliente-section').classList.add('hidden');
+    
+    document.getElementById('product-grid').classList.remove('hidden');
+    const cartPanel = document.querySelector('.cart-panel');
+    if (cartPanel) cartPanel.classList.remove('hidden');
+    const searchSection = document.querySelector('.store-hero');
+    if (searchSection) searchSection.classList.remove('hidden');
+}
+
+// Abre el modal flotante consultando los detalles específicos del folio
+async function verDetalleTicket(idVenta, fechaStr, totalVenta) {
+    const modal = document.getElementById('modal-detalle-compra');
+    const bodyProductos = document.getElementById('modal-detalle-productos-body');
+    
+    document.getElementById('modal-detalle-folio').innerText = `Ticket: ${idVenta}`;
+    document.getElementById('modal-detalle-fecha').innerText = `Fecha: ${fechaStr}`;
+    document.getElementById('modal-detalle-total').innerText = `$${parseFloat(totalVenta).toFixed(2)}`;
+    
+    bodyProductos.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Cargando artículos...</td></tr>';
+    modal.classList.remove('hidden');
+
+    const urlBase = obtenerUrlBaseAPI();
+
+    try {
+        const respuesta = await fetch(`${urlBase}/ventas/${encodeURIComponent(idVenta)}/detalles`);
+        const detalles = await respuesta.json();
+
+        if (detalles.length === 0) {
+            bodyProductos.innerHTML = '<tr><td colspan="4" class="p-2 text-center text-slate-400">No se encontraron productos para este ticket.</td></tr>';
+            return;
+        }
+
+        bodyProductos.innerHTML = detalles.map(d => {
+            const nombreProd = d.producto ? d.producto.nombre : `Producto [${d.id_producto}]`;
+            const subtotal = d.cantidad * d.precio_unitario;
+            return `
+                <tr class="border-b border-slate-50">
+                    <td class="p-2 font-semibold text-slate-800">${nombreProd}</td>
+                    <td class="p-2 text-center font-bold text-slate-600">${d.cantidad}</td>
+                    <td class="p-2 text-slate-400">$${parseFloat(d.precio_unitario).toFixed(2)}</td>
+                    <td class="p-2 text-right font-bold text-slate-800">$${subtotal.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error(err);
+        bodyProductos.innerHTML = '<tr><td colspan="4" class="p-2 text-center text-red-500">Error al cargar artículos.</td></tr>';
+    }
+}
+
+function cerrarModalDetalleCompra() {
+    document.getElementById('modal-detalle-compra').classList.add('hidden');
 }
