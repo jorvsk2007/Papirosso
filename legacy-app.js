@@ -276,8 +276,8 @@ async function irAProductos() {
                     <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded'}">${p.cant_exist} pzas</span></td>
                     <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600' : 'text-emerald-600'}">${p.cant_exist} pzas</span>
                     <button onclick="reabastecerProducto('${p.id_producto}')" 
-                    class="ml-2 px-2 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-600 hover:text-white transition-all text-[10px] font-bold uppercase tracking-wider">
-                    + Agregar
+                    class="ml-2 px-2 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-semibold">
+                    Agregar Stock
                     </button>
                     </td>
                 </tr>`).join('');
