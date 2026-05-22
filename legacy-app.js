@@ -810,9 +810,7 @@ async function registrarVentaPublica() {
     const usuarioCliente = JSON.parse(sesion);
 
     try {
-        const totalTexto = document.getElementById('cart-total').innerText;
-        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
-        
+        // Mapeo correcto usando id_producto para evitar el error de "Producto undefined"
         const detallesFormateados = carrito.map(item => ({
             id: item.id_producto,          
             id_producto: item.id_producto, 
@@ -820,6 +818,9 @@ async function registrarVentaPublica() {
             precio: parseFloat(item.precio),
             cantidad: parseInt(item.cantidad)
         }));
+
+        const totalTexto = document.getElementById('cart-total').innerText;
+        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
 
         const ventaData = {
             precio_total: totalVenta,
@@ -837,17 +838,27 @@ async function registrarVentaPublica() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            // NUEVO: En lugar de alert, inyecta el folio y abre tu modal personalizado del HTML
-            const modalFolio = document.getElementById('modal-folio');
-            const modalExito = document.getElementById('modal-compra-exitosa');
+            // 1. Te avisa que la compra fue un éxito en la base de datos
+            alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
             
-            if (modalFolio) modalFolio.textContent = `Folio: ${resultado.id_venta || "OK"}`;
-            if (modalExito) modalExito.style.display = 'flex';
-        
-            // Limpiamos los datos globales
+            // 2. Vaciamos el arreglo interno de la memoria
             carrito = [];
-            actualizarVistaTicket(); // Llama a la renderización para vaciar la barra lateral
-            irAProductos();         // Refresca el stock real en la tabla de productos
+            
+            // 3. ✨ LIMPIEZA VISUAL AUTOMÁTICA DEL HTML:
+            // Borramos los artículos que se quedaron pintados en la barra lateral
+            const cartItemsContainer = document.getElementById('cart-items');
+            if (cartItemsContainer) {
+                cartItemsContainer.innerHTML = "Tu carrito está vacío";
+            }
+            
+            // Restablecemos el total acumulado en pantalla a $0.00
+            const cartTotalContainer = document.getElementById('cart-total');
+            if (cartTotalContainer) {
+                cartTotalContainer.innerText = "$0.00";
+            }
+
+            // 4. Refrescamos el stock de las tarjetas por si te quedaste sin piezas
+            irAProductos();
             
         } else {
             throw new Error(resultado.error);
