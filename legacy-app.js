@@ -821,43 +821,52 @@ async function registrarVentaPublica() {
 
 
 // ==========================================
-// 10. EASTER EGG - SANS (MORTADELA) CON MÚSICA
+// 10. EASTER EGG - SANS (MORTADELA)
 // ==========================================
 
-const musicaSans = new Audio('./megalovania.mp3');
-musicaSans.loop = true; 
+// 1. Declaramos el archivo de audio de Qumu de forma global en el script
+const musicaSans = new Audio('megalovania.mp3');
+musicaSans.loop = true;
 
+// 2. Escuchamos cuando el HTML termine de cargar los elementos de la página
 document.addEventListener('DOMContentLoaded', () => {
     const buscadorPublico = document.getElementById('public-search');
     const easterEggBtn = document.getElementById('easter-egg-trigger');
     const modalSans = document.getElementById('easter-egg-modal');
     const btnCerrarSans = document.getElementById('close-easter-egg');
 
+    // Control en tiempo real de lo que se escribe en el buscador
     if (buscadorPublico) {
         buscadorPublico.addEventListener('input', (e) => {
             const texto = e.target.value.toLowerCase().trim();
             
+            // Si el texto es exactamente "mortadela", activamos la sorpresa
             if (texto === 'mortadela') {
                 if (easterEggBtn) easterEggBtn.classList.remove('hidden');
                 if (modalSans) modalSans.classList.remove('hidden');
                 
-                // 2. ¡QUE COMIENCE EL JUICIO! (Le damos play a la música)
+                // Intentamos reproducir la música de Qumu
                 musicaSans.play().catch(error => {
-                    // El navegador a veces bloquea el audio si el usuario no ha hecho clic antes
-                    console.log("Audio bloqueado temporalmente por el navegador:", error);
+                    console.log("El navegador bloqueó el autoplay hasta que interactúes:", error);
                 });
-
             } else {
+                // SI EL TEXTO CAMBIA O SE BORRA: Desaparece el botón, el modal y se apaga la música
                 if (easterEggBtn) easterEggBtn.classList.add('hidden');
+                if (modalSans) modalSans.classList.add('hidden');
+                
+                musicaSans.pause();
+                musicaSans.currentTime = 0; // Reinicia la canción al segundo cero
             }
         });
     }
 
-    if (btnCerrarSans && modalSans) {
+    // Funcionalidad para el botón "Cerrar" del propio modal de Sans
+    if (btnCerrarSans) {
         btnCerrarSans.addEventListener('click', () => {
-            modalSans.classList.add('hidden');
+            // Ocultamos el modal visualmente
+            if (modalSans) modalSans.classList.add('hidden');
             
-            // 3. Pausamos la música y la reiniciamos al segundo 0 cuando cierren el modal
+            // Apagamos y reiniciamos la música al dar clic en cerrar
             musicaSans.pause();
             musicaSans.currentTime = 0;
         });
