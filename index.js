@@ -93,25 +93,31 @@ app.get('/api/clientes', async (req, res) => {
     res.json(data);
 });
 
-// --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
+// --- 5. RUTA DE VENTAS (Con actualización de Stock y CURP automática en línea) ---
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
 
     try {
+        // 🌟 LA REGLA DE TU NEGOCIO: Si no viene un trabajador (venta en línea), 
+        // le asignamos automáticamente la CURP que nos pediste.
+        const trabajadorFinal = (curp_trabajador && curp_trabajador.trim() !== "") 
+            ? curp_trabajador 
+            : "TRAB010101HLINEA01";
+
         // 1. GENERAR FOLIO
         const folioVenta = `#VTA-2026-${Math.floor(Math.random() * 999)}`;
 
-        // 2. INSERTAR VENTA
+        // 2. INSERTAR VENTA (Usando la variable del trabajador final)
         const { error: errVenta } = await supabase.from('ventas').insert([{
             id_venta: folioVenta,
             precio_total: parseFloat(precio_total),
             curp_cliente: curp_cliente,
-            curp_trabajador: curp_trabajador,
+            curp_trabajador: trabajadorFinal, // 👈 Aquí se guarda el comodín si fue en línea
             fecha: new Date().toISOString()
         }]);
         if (errVenta) throw errVenta;
 
-        // 3. PROCESAR CADA PRODUCTO
+        // 3. PROCESAR CADA PRODUCTO (Tu funcionalidad original intacta)
         for (const item of detalles) {
             // A. CONSULTAR STOCK ACTUAL
             const { data: producto, error: errFetch } = await supabase
@@ -122,7 +128,7 @@ app.post('/api/ventas', async (req, res) => {
 
             if (errFetch || !producto) throw new Error(`Producto ${item.id_producto} no encontrado.`);
 
-            // B. VALIDAR SI HAY SUFICIENTE (Esto evita que baje de 0)
+            // B. VALIDAR SI HAY SUFICIENTE
             if (producto.cant_exist < item.cantidad) {
                 throw new Error(`Stock insuficiente para ${item.nombre}. Quedan: ${producto.cant_exist}`);
             }
