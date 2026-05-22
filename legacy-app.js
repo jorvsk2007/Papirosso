@@ -406,14 +406,17 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
+// =======================================================
+// LÓGICA DEL CARRITO & PUNTO DE VENTA (SÓLO PANEL ADMIN)
+// =======================================================
+
 function añadirAlCarrito(idProducto, nombre, precio) {
-    // Buscamos si el producto ya está en el carrito usando la propiedad id_producto
+    // 1. Guardamos el producto en el arreglo global
     const index = carrito.findIndex(item => item.id_producto === idProducto);
     
     if (index !== -1) {
         carrito[index].cantidad++;
     } else {
-        // Añadimos el producto con la estructura limpia que espera el admin
         carrito.push({ 
             id_producto: idProducto, 
             nombre: nombre, 
@@ -422,14 +425,25 @@ function añadirAlCarrito(idProducto, nombre, precio) {
         });
     }
     
-    // CORRECCIÓN 1: Usamos el nombre exacto de tu función original para cerrar el panel visual
-    if (typeof cerrarModalBusqueda === "function") {
-        cerrarModalBusqueda();
+    // 2. Intentamos actualizar la tabla del ticket visualmente
+    try {
+        if (typeof actualizarTablaTicket === "function") {
+            actualizarTablaTicket();
+        }
+    } catch (error) {
+        console.warn("Aviso en actualizarTablaTicket: ", error.message);
+        // Al atrapar el error aquí, evitamos que se congele el código
     }
     
-    // CORRECCIÓN 2: Ejecutamos la función nativa que renderiza el ticket en tu panel.html
-    if (typeof actualizarTablaTicket === "function") {
-        actualizarTablaTicket();
+    // 3. Forzamos el cierre inmediato del modal de búsqueda
+    if (typeof cerrarModalBusqueda === "function") {
+        cerrarModalBusqueda();
+    } else {
+        // Alternativa directa si la función no responde: ocultamos el elemento por ID
+        const modalBusqueda = document.getElementById('modal-busqueda');
+        if (modalBusqueda) {
+            modalBusqueda.classList.add('hidden');
+        }
     }
 }
 
