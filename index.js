@@ -159,6 +159,33 @@ app.post('/api/ventas', async (req, res) => {
     }
 });
 
+// Ruta para actualizar stock (REABASTECIMIENTO)
+app.put('/api/productos/reabastecer', async (req, res) => {
+    const { id_producto, cantidad_a_sumar } = req.body;
+
+    // 1. Obtener el stock actual
+    const { data: producto, error: errFetch } = await supabase
+        .from('producto')
+        .select('cant_exist')
+        .eq('id_producto', id_producto)
+        .single();
+
+    if (errFetch || !producto) return res.status(404).json({ error: "Producto no encontrado" });
+
+    // 2. Sumar el stock nuevo al actual
+    const nuevoTotal = producto.cant_exist + parseInt(cantidad_a_sumar);
+
+    // 3. Guardar el nuevo valor
+    const { error: errUpdate } = await supabase
+        .from('producto')
+        .update({ cant_exist: nuevoTotal })
+        .eq('id_producto', id_producto);
+
+    if (errUpdate) return res.status(500).json({ error: "Error al actualizar stock" });
+
+    res.json({ mensaje: "Stock actualizado", nuevo_total: nuevoTotal });
+});
+
 // --- 6. RUTA DE REPORTES (Historial) ---
 app.get('/api/reportes', async (req, res) => {
     const { data, error } = await supabase
