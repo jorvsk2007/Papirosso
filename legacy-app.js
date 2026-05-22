@@ -823,9 +823,8 @@ async function registrarVentaPublica() {
 // 10. EASTER EGG - SANS (MORTADELA) CON MÚSICA
 // ==========================================
 
-// 1. Creamos el objeto de audio apuntando a una versión online segura de Megalovania
 const musicaSans = new Audio('./megalovania.mp3');
-musicaSans.loop = true; // Para que se repita si se quedan mucho tiempo en el modal
+musicaSans.loop = true; 
 
 document.addEventListener('DOMContentLoaded', () => {
     const buscadorPublico = document.getElementById('public-search');
