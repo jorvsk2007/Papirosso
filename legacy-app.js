@@ -274,6 +274,9 @@ async function irAProductos() {
                     <td class="px-6 py-4 font-semibold text-slate-800">${p.nombre}</td>
                     <td class="px-6 py-4 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
                     <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded'}">${p.cant_exist} pzas</span></td>
+                    <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600' : 'text-emerald-600'}">${p.cant_exist} pzas</span>
+                    <button onclick="reabastecerProducto('${p.id_producto}')" class="ml-2 text-blue-600 underline text-xs">Sumar</button>
+                    </td>
                 </tr>`).join('');
         }
     } catch (e) { 
@@ -479,6 +482,26 @@ async function registrarVenta() {
         }
     } catch (err) {
         alert("No se pudo registrar: " + err.message);
+    }
+}
+
+async function reabastecerProducto(id_producto) {
+    const cantidad = prompt("¿Cuántas piezas vas a agregar al inventario?");
+    if (!cantidad || isNaN(cantidad)) return;
+
+    const urlBase = obtenerUrlBaseAPI();
+    
+    const respuesta = await fetch(`${urlBase}/productos/reabastecer`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_producto, cantidad_a_sumar: cantidad })
+    });
+
+    if (respuesta.ok) {
+        alert("Inventario actualizado.");
+        irAProductos(); // Recarga la tabla para ver el nuevo stock
+    } else {
+        alert("Error al actualizar.");
     }
 }
 
