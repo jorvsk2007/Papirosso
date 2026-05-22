@@ -270,7 +270,7 @@ async function irAProductos() {
         // RESPALDO GLOBAL: Almacenamos el catálogo completo en memoria para traducir los IDs en el historial
         listaProductosGlobal = data || [];
 
-        // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN (Pinta la tabla blanca)
+        // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN
         if (tablaBody) {
             const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
             const puedeAgregar = (rol === 'admin' || rol === 'administrador' || rol === 'almacenista');
@@ -294,7 +294,7 @@ async function irAProductos() {
                 </tr>`).join('');
         }
 
-        // 2. SI ESTÁ EN LA TIENDA PÚBLICA (Pinta las tarjetas de productos)
+        // 2. SI ESTÁ EN LA TIENDA PÚBLICA
         if (productGrid) {
             if (!data || data.length === 0) {
                 productGrid.innerHTML = '<p class="text-slate-400 text-center col-span-full">No hay productos disponibles por el momento.</p>';
@@ -405,6 +405,7 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
+// ==========================================
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
     const index = carrito.findIndex(item => item.id === id);
     if (index !== -1) {
@@ -421,8 +422,18 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
         // Guardamos el stock maximo dentro del objeto del carrito para usarlo en los botones + y -
         carrito.push({ id, nombre, precio, cantidad: 1, stockMax: stockDisponible });
     }
-    cerrarBuscador();
-    actualizarVistaTicket();
+
+    // Validaciones de seguridad por si estas funciones no están declaradas en la plantilla actual
+    if (typeof cerrarBuscador === "function") {
+        cerrarBuscador();
+    }
+    
+    if (typeof actualizarVistaTicket === "function") {
+        actualizarVistaTicket();
+    } else if (typeof actualizarInterfazCarritoPublico === "function") {
+        // Ejecuta la actualización de la barra lateral si estás en la tienda pública
+        actualizarInterfazCarritoPublico();
+    }
 }
 
 function quitarDelCarrito(index) {
