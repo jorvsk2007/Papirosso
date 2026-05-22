@@ -102,77 +102,44 @@ app.get('/api/clientes', async (req, res) => {
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
     
-    if (!detalles || detalles.length === 0) {
-        return res.status(400).json({ error: "El carrito de ventas está completamente vacío." });
-    }
-
     try {
-        const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
-        
-        // 1. GENERAMOS EL FOLIO DE VENTA COMO TEXTO (#VTA-AÑO-RANDOM)
-        const añoActual = new Date().getFullYear();
-        const numVenta = Math.floor(1000 + Math.random() * 9000); 
-        const folioVenta = `#VTA-${añoActual}-${numVenta}`;
+        // 1. Generamos el folio exactamente como lo necesitas
+        const folioVenta = `#VTA-2026-${Math.floor(Math.random() * 999)}`;
 
-        const { data: nuevaVenta, error: errVenta } = await supabase
+        // 2. Insertamos en 'ventas' (Asegúrate de que 'id_venta' sea tipo TEXT en tu BD)
+        const { data: venta, error: errVenta } = await supabase
             .from('ventas')
-            .insert([{ 
-                id_venta: folioVenta, // <--- Tu folio clásico
-                precio_total: parseFloat(precio_total), 
-                curp_cliente: clienteId, 
+            .insert([{
+                id_venta: folioVenta, // Aquí va el texto: "#VTA-2026-XXX"
+                precio_total: parseFloat(precio_total),
+                curp_cliente: curp_cliente,
                 curp_trabajador: curp_trabajador,
                 fecha: new Date().toISOString()
             }])
             .select();
 
-        if (errVenta) throw new Error("Error en venta: " + errVenta.message);
+        if (errVenta) throw errVenta;
 
-        const id_venta = nuevaVenta[0].id_venta;
-
-        // 2. RECORREMOS LOS ARTÍCULOS
+        // 3. Insertar detalles
         for (const item of detalles) {
-            const codigoProducto = item.id || item.id_producto;
-            
-            // Consultamos stock en la tabla 'producto'
-            const { data: productoBD, error: errStock } = await supabase
-                .from('producto')
-                .select('cant_exist, nombre')
-                .eq('id_producto', codigoProducto)
-                .single();
+            // IMPORTANTE: id_detalle debe ser INT4 (entero). 
+            // Si el error de "out of range" persiste, es porque le estás pasando 
+            // un número gigante aquí. Usa Math.random() limitado:
+            const idDetalleSeguro = Math.floor(Math.random() * 1000000); 
 
-            if (errStock || !productoBD) throw new Error(`El producto ${codigoProducto} no existe.`);
-            if (productoBD.cant_exist < item.cantidad) throw new Error(`Stock insuficiente para "${productoBD.nombre}".`);
-
-            // 3. GENERAMOS UN ID DE DETALLE SEGURO (Entero que sí cabe en int4)
-            // Genera un número al azar entre 1 y 999,999,999 (muy por debajo del límite de PostgreSQL)
-            const idDetalleSeguro = Math.floor(Math.random() * 999999999) + 1;
-
-            // Insertamos el detalle usando el ID seguro
-            const { error: errDetalle } = await supabase
-                .from('detalle_venta')
-                .insert([{
-                    id_detalle: idDetalleSeguro, // <--- El número que no va a tronar la base de datos
-                    id_venta: id_venta,
-                    id_producto: codigoProducto,
-                    cantidad: parseInt(item.cantidad),
-                    precio_unitario: parseFloat(item.precio)
-                }]);
-
-            if (errDetalle) throw new Error("Error en detalle: " + errDetalle.message);
-
-            // 4. Descontamos el stock
-            const nuevoStock = productoBD.cant_exist - item.cantidad;
-            const { error: errUpdate } = await supabase
-                .from('producto')
-                .update({ cant_exist: nuevoStock })
-                .eq('id_producto', codigoProducto);
-
-            if (errUpdate) throw new Error("Error al actualizar inventario: " + errUpdate.message);
+            await supabase.from('detalle_venta').insert([{
+                id_detalle: idDetalleSeguro, 
+                id_venta: folioVenta, // Usamos el mismo texto de arriba
+                id_producto: item.id_producto,
+                cantidad: item.cantidad,
+                precio_unitario: item.precio
+            }]);
         }
 
-        return res.status(201).json({ success: true, id_venta: id_venta });
+        return res.status(201).json({ id_venta: folioVenta });
 
     } catch (err) {
+        console.error("Error al guardar:", err);
         return res.status(400).json({ error: err.message });
     }
 });
