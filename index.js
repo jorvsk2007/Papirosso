@@ -99,7 +99,7 @@ app.get('/api/clientes', async (req, res) => {
 });
 
 // --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
-// --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
+// --- 5. RUTA DE VENTAS (Con actualización de Stock y Generación de IDs) ---
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
     
@@ -110,18 +110,15 @@ app.post('/api/ventas', async (req, res) => {
     try {
         const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
         
-        // =========================================================================
-        // SOLUCCIÓN AQUÍ: Generar el folio con formato original (#VTA-AÑO-CONSECUTIVO)
-        // =========================================================================
+        // Generar un folio de venta único por texto compatible
         const añoActual = new Date().getFullYear();
-        // Generamos un consecutivo único aleatorio de 3 dígitos (ej: 838)
         const numeroConsecutivo = Math.floor(100 + Math.random() * 900); 
         const folioVenta = `#VTA-${añoActual}-${numeroConsecutivo}`;
 
         const { data: nuevaVenta, error: errVenta } = await supabase
             .from('ventas')
             .insert([{ 
-                id_venta: folioVenta, // <--- Enviamos el string estructurado a la BD
+                id_venta: folioVenta,
                 precio_total: parseFloat(precio_total), 
                 curp_cliente: clienteId, 
                 curp_trabajador: curp_trabajador,
@@ -135,38 +132,36 @@ app.post('/api/ventas', async (req, res) => {
 
         const id_venta = nuevaVenta[0].id_venta;
 
-        // 2. Recorrer los artículos para validar stock, registrar detalle y descontar
+        // Recorrer los artículos para validar stock, registrar detalle y descontar
         for (const item of detalles) {
+            const codigoProducto = item.id || item.id_producto;
             
-            // Consultar existencias actuales en 'producto' (singular)
+            // Consultar existencias actuales en la tabla 'producto'
             const { data: productoBD, error: errStock } = await supabase
                 .from('producto')
                 .select('cant_exist, nombre')
-                .eq('id_producto', item.id_producto || item.id)
+                .eq('id_producto', codigoProducto)
                 .single();
 
             if (errStock || !productoBD) {
-                return res.status(400).json({ error: `El producto con código ${item.id_producto || item.id} no existe.` });
+                return res.status(400).json({ error: `El producto con código ${codigoProducto} no existe.` });
             }
 
             if (productoBD.cant_exist < item.cantidad) {
                 return res.status(400).json({ error: `Stock insuficiente para "${productoBD.nombre}".` });
             }
 
-            // Insertar en 'detalle_venta' (singular)
-            // ... (código anterior donde verificas el stock se queda igual) ...
+            // Generar obligatoriamente un ID numérico entero único para 'id_detalle' (bigint compatible)
+            const idDetalleManual = Number(`${Date.now()}${Math.floor(100 + Math.random() * 900)}`);
 
-            // Generamos un ID único para este detalle en específico
-            const idDetalleManual = `DET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-            // Insertar en 'detalle_venta' (singular)
+            // Insertar en la tabla 'detalle_venta'
             const { error: errDetalle } = await supabase
                 .from('detalle_venta')
                 .insert([{
-                    id_detalle: idDetalleManual, // <--- AÑADIMOS EL ID MANUAL AQUÍ
+                    id_detalle: idDetalleManual,
                     id_venta: id_venta,
-                    id_producto: item.id_producto || item.id,
-                    cantidad: item.cantidad,
+                    id_producto: codigoProducto,
+                    cantidad: parseInt(item.cantidad),
                     precio_unitario: parseFloat(item.precio)
                 }]);
 
@@ -174,14 +169,12 @@ app.post('/api/ventas', async (req, res) => {
                 return res.status(400).json({ error: "Error en detalle: " + errDetalle.message });
             }
 
-            // ... (código posterior donde descuentas el stock se queda igual) ...
-
             // Descontar del inventario en la tabla 'producto'
             const nuevoStock = productoBD.cant_exist - item.cantidad;
             const { error: errUpdate } = await supabase
                 .from('producto')
                 .update({ cant_exist: nuevoStock })
-                .eq('id_producto', item.id_producto || item.id);
+                .eq('id_producto', codigoProducto);
 
             if (errUpdate) {
                 return res.status(400).json({ error: "Error al actualizar inventario: " + errUpdate.message });
