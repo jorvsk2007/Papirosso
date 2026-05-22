@@ -258,8 +258,8 @@ function switchTab(tabId, botonActivado) {
 // 5. GESTIÓN DE PRODUCTOS E INVENTARIO
 // ==========================================
 async function irAProductos() {
-    const tablaBody = document.getElementById('inventario-tabla-body'); // Panel Admin
-    const productGrid = document.getElementById('product-grid');        // Tienda Pública
+    const tablaBody = document.getElementById('inventario-tabla-body');
+    const productGrid = document.getElementById('product-grid');
     const btnContainer = document.getElementById('btn-nuevo-producto-container');
     const urlBase = obtenerUrlBaseAPI();
     
@@ -267,10 +267,8 @@ async function irAProductos() {
         const respuesta = await fetch(`${urlBase}/productos`);
         const data = await respuesta.json();
 
-        // RESPALDO GLOBAL: Almacenamos el catálogo completo en memoria
         listaProductosGlobal = data || [];
 
-        // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN
         if (tablaBody) {
             const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
             const puedeAgregar = (rol === 'admin' || rol === 'administrador' || rol === 'almacenista');
@@ -294,18 +292,16 @@ async function irAProductos() {
                 </tr>`).join('');
         }
 
-        // 2. SI ESTÁ EN LA TIENDA PÚBLICA (Calcula descuento en tiempo real por el carrito)
         if (productGrid) {
             if (!data || data.length === 0) {
                 productGrid.innerHTML = '<p class="text-slate-400 text-center col-span-full">No hay productos disponibles por el momento.</p>';
                 return;
             }
             productGrid.innerHTML = data.map(p => {
-                // Buscamos si el usuario ya tiene este producto en el carrito temporal
+                // UNIFICACIÓN CRÍTICA: Buscamos en el carrito usando item.id
                 const itemEnCarrito = carrito.find(item => item.id === p.id_producto);
                 const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
                 
-                // Restamos dinámicamente lo que está agarrando temporalmente
                 const stockDisponibleReal = p.cant_exist - cantidadEnCarrito;
                 const sinStock = stockDisponibleReal <= 0;
 
@@ -318,7 +314,7 @@ async function irAProductos() {
                         </div>
                         <div style="margin-top: 12px;">
                             <p style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; color: ${sinStock ? '#ef4444' : '#16a34a'}">
-                                ${sinStock ? '❌ Agotado en Tienda' : `📦 Disponible: ${stockDisponibleReal} pzas`}
+                                ${sinStock ? '❌ Agotado temporalmente' : `📦 Disponible: ${stockDisponibleReal} pzas`}
                             </p>
                             <button onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, ${p.cant_exist})" ${sinStock ? 'disabled' : ''} class="btn-confirm" style="width: 100%; padding: 10px; font-size: 0.85rem; cursor: ${sinStock ? 'not-allowed' : 'pointer'}; background: ${sinStock ? '#cbd5e1' : ''}; color: ${sinStock ? '#64748b' : ''}; border: none; border-radius: 8px; font-weight: bold;">
                                 ${sinStock ? 'Sin existencias' : '🛒 Añadir al carrito'}
@@ -329,8 +325,6 @@ async function irAProductos() {
         }
     } catch (e) {
         console.error("Error al cargar productos", e);
-        if (tablaBody) tablaBody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500">Error al conectar con el servidor.</td></tr>';
-        if (productGrid) productGrid.innerHTML = '<p class="text-red-500 text-center col-span-full">Error al cargar el catálogo de productos.</p>';
     }
 }
 
@@ -412,12 +406,8 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-// ==========================================
-// ==========================================
-// LÓGICA DEL CARRITO PÚBLICO (TIENDA)
-// ==========================================
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
-    // Buscamos si ya existe el producto en el carrito temporal
+    // Buscamos estrictamente por item.id
     const index = carrito.findIndex(item => item.id === id);
     
     if (index !== -1) {
@@ -431,7 +421,7 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // FORZAMOS LA ESTRUCTURA CORRECTA DEL OBJETO:
+        // Construimos el objeto con propiedades explícitas sin usar nombres alternos
         carrito.push({ 
             id: id, 
             nombre: nombre, 
@@ -456,8 +446,7 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
-        // Si se vacía el carrito, refrescamos tarjetas de productos para regresar su stock al original
-        irAProductos();
+        irAProductos(); // Restaurar stock de las tarjetas de la tienda
         return;
     }
 
@@ -466,7 +455,7 @@ function actualizarInterfazCarritoPublico() {
         const subtotal = item.cantidad * item.precio;
         sumaTotal += subtotal;
         
-        // AQUÍ LEPASAMOS LAS PROPIEDADES AL INYECTAR EL HTML EN EL BOTÓN
+        // CORRECCIÓN RADICAL: Asegurar que se inyecten item.id e item.stockMax correctos en el HTML
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
                 <div style="flex: 1; padding-right: 10px;">
@@ -487,7 +476,7 @@ function actualizarInterfazCarritoPublico() {
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
 
-    // Mandamos a redibujar el panel de productos para restar lo que ya está apartado
+    // Forzar el recálculo y descuento visual de las tarjetas del catálogo
     irAProductos();
 }
 
@@ -505,11 +494,9 @@ function cambiarCantidadCarrito(id, cambio, stockMaximo) {
         if (carrito[index].cantidad > 1) {
             carrito[index].cantidad--;
         } else {
-            // Remueve el artículo del carrito si llega a 0 piezas
             carrito.splice(index, 1);
         }
     }
-    // Volvemos a renderizar en cascada
     actualizarInterfazCarritoPublico();
 }
 
