@@ -99,6 +99,7 @@ app.get('/api/clientes', async (req, res) => {
 });
 
 // --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
+// --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
     
@@ -107,12 +108,20 @@ app.post('/api/ventas', async (req, res) => {
     }
 
     try {
-        // 1. Insertar la cabecera de la venta en la tabla 'ventas'
         const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
         
+        // =========================================================================
+        // SOLUCCIÓN AQUÍ: Generar el folio con formato original (#VTA-AÑO-CONSECUTIVO)
+        // =========================================================================
+        const añoActual = new Date().getFullYear();
+        // Generamos un consecutivo único aleatorio de 3 dígitos (ej: 838)
+        const numeroConsecutivo = Math.floor(100 + Math.random() * 900); 
+        const folioVenta = `#VTA-${añoActual}-${numeroConsecutivo}`;
+
         const { data: nuevaVenta, error: errVenta } = await supabase
             .from('ventas')
             .insert([{ 
+                id_venta: folioVenta, // <--- Enviamos el string estructurado a la BD
                 precio_total: parseFloat(precio_total), 
                 curp_cliente: clienteId, 
                 curp_trabajador: curp_trabajador,
