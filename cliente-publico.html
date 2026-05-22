@@ -11,7 +11,9 @@
     <header class="page-header">
         <a class="brand" href="index.html">Papirosso</a>
         <nav class="store-menu">
-            <a href="login.html">Iniciar Sesión</a>
+            <a href="login.html" id="nav-login-text">Iniciar Sesión</a>
+            <span id="nav-user-curp" class="user-curp-display hidden" style="color: var(--primary); font-weight: 800; font-family: 'Inter', sans-serif;"></span>
+            <button id="btn-cerrar-sesion-publico" class="hidden" onclick="cerrarSesion()" style="background: none; border: none; color: red; cursor: pointer; font-weight: 600; margin-left: 10px;">🚪 Salir</button>
             <a href="index.html">Inicio</a>
         </nav>
         <button id="easter-egg-trigger" class="easter-egg hidden" aria-label="Egg">🦴</button>
