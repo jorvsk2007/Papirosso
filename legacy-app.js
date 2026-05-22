@@ -793,7 +793,6 @@ function verificarSesionPublica() {
     const userDisplay = document.getElementById('nav-user-curp');
     const btnSalir = document.getElementById('btn-cerrar-sesion-publico');
     const checkoutBtn = document.getElementById('checkout-button');
-    const btnMisCompras = document.getElementById('btn-mis-compras');
 
     if (sesion) {
         const usuario = JSON.parse(sesion);
@@ -805,10 +804,13 @@ function verificarSesionPublica() {
             userDisplay.classList.remove('hidden');
         }
         if (btnSalir) btnSalir.classList.remove('hidden');
-        if (btnMisCompras) btnMisCompras.classList.remove('hidden');
+        
+        // Auto-cargar el historial en la columna izquierda en cuanto se inicia sesión
+        if (typeof verMisCompras === "function") {
+            verMisCompras();
+        }
     } else {
         usuarioActual = null;
-        if (btnMisCompras) btnMisCompras.classList.add('hidden');
     }
 
     if (checkoutBtn) {
@@ -825,69 +827,57 @@ function verificarSesionPublica() {
 }
 
 async function registrarVentaPublica() {
-    if (carrito.length === 0) return alert("El carrito está vacío.");
+    if (carrito.length === 0) {
+        alert("El carrito está vacío.");
+        return;
+    }
+    if (!usuarioActual || !usuarioActual.curp) {
+        alert("Debes iniciar sesión para comprar.");
+        return;
+    }
+
     const urlBase = obtenerUrlBaseAPI();
-    const sesion = localStorage.getItem('usuario');
-    if (!sesion) return;
-    
-    const usuarioCliente = JSON.parse(sesion);
+    const payload = {
+        curp_cliente: usuarioActual.curp,
+        productos: carrito.map(item => ({
+            id_producto: item.id,
+            cantidad: item.cantidad
+        }))
+    };
 
     try {
-        // Mapeo correcto usando id_producto para evitar el error de "Producto undefined"
-        const detallesFormateados = carrito.map(item => ({
-            id: item.id_producto,          
-            id_producto: item.id_producto, 
-            nombre: item.nombre,
-            precio: parseFloat(item.precio),
-            cantidad: parseInt(item.cantidad)
-        }));
-
-        const totalTexto = document.getElementById('cart-total').innerText;
-        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
-
-        const ventaData = {
-            precio_total: totalVenta,
-            curp_cliente: usuarioCliente.curp, 
-            curp_trabajador: null,             
-            detalles: detallesFormateados
-        };
-
-        const respuesta = await fetch(`${urlBase}/ventas`, {
+        const respuesta = await fetch(`${urlBase}/ventas/publico`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ventaData)
+            body: JSON.stringify(payload)
         });
 
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            // 1. Te avisa que la compra fue un éxito en la base de datos
-            alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
+            alert("🎉 ¡Compra realizada con éxito! Tu ticket ha sido generado.");
             
-            // 2. Vaciamos el arreglo interno de la memoria
+            // 1. Limpiamos carrito local
             carrito = [];
-            
-            // 3. ✨ LIMPIEZA VISUAL AUTOMÁTICA DEL HTML:
-            // Borramos los artículos que se quedaron pintados en la barra lateral
-            const cartItemsContainer = document.getElementById('cart-items');
-            if (cartItemsContainer) {
-                cartItemsContainer.innerHTML = "Tu carrito está vacío";
-            }
-            
-            // Restablecemos el total acumulado en pantalla a $0.00
-            const cartTotalContainer = document.getElementById('cart-total');
-            if (cartTotalContainer) {
-                cartTotalContainer.innerText = "$0.00";
+            if (typeof limpiarCarritoCliente === "function") {
+                limpiarCarritoCliente();
+            } else {
+                actualizarInterfazCarritoPublico();
             }
 
-            // 4. Refrescamos el stock de las tarjetas por si te quedaste sin piezas
-            irAProductos();
-            
+            // 2. Traer el stock actualizado directo del servidor
+            await irAProductos();
+
+            // 3. AUTO-ACTUALIZACIÓN DE COMPRAS: Refresca el panel izquierdo de compras al instante
+            if (typeof verMisCompras === "function") {
+                verMisCompras();
+            }
         } else {
-            throw new Error(resultado.error);
+            alert("Error al procesar la venta: " + (resultado.error || "Intente de nuevo."));
         }
     } catch (err) {
-        alert("No se pudo procesar la compra: " + err.message);
+        console.error(err);
+        alert("Error de conexión con el servidor.");
     }
 }
 
