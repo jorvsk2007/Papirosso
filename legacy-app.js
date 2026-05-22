@@ -799,16 +799,17 @@ async function registrarVentaPublica() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
+            // NUEVO: En lugar de alert, inyecta el folio y abre tu modal personalizado del HTML
+            const modalFolio = document.getElementById('modal-folio');
+            const modalExito = document.getElementById('modal-compra-exitosa');
             
-
+            if (modalFolio) modalFolio.textContent = `Folio: ${resultado.id_venta || "OK"}`;
+            if (modalExito) modalExito.style.display = 'flex';
+        
+            // Limpiamos los datos globales
             carrito = [];
-            
-
-            const cartItemsContainer = document.getElementById('cart-items');
-            if (cartItemsContainer) cartItemsContainer.innerHTML = "Tu carrito está vacío";
-            const cartTotalContainer = document.getElementById('cart-total');
-            if (cartTotalContainer) cartTotalContainer.innerText = "$0.00";
+            actualizarVistaTicket(); // Llama a la renderización para vaciar la barra lateral
+            irAProductos();         // Refresca el stock real en la tabla de productos
             
         } else {
             throw new Error(resultado.error);
