@@ -499,9 +499,11 @@ function cambiarCantidadCarrito(id, cambio) {
         if (carrito[index].cantidad > 1) {
             carrito[index].cantidad--;
         } else {
+            // Si llega a 0, removemos el producto por completo del carrito
             carrito.splice(index, 1);
         }
     }
+    // Renderiza el carrito de nuevo y actualiza el stock dinámico de las tarjetas
     actualizarInterfazCarritoPublico();
 }
 
