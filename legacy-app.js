@@ -406,44 +406,57 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-function añadirAlCarrito(id, nombre, precio, stockDisponible) {
-    const index = carrito.findIndex(item => item.id === id);
+function añadirAlCarrito(idProducto, nombre, precio) {
+    // Buscamos si el producto ya está en el carrito usando la propiedad id_producto
+    const index = carrito.findIndex(item => item.id_producto === idProducto);
+    
     if (index !== -1) {
-        if (carrito[index].cantidad >= stockDisponible) {
-            alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
-            return;
-        }
         carrito[index].cantidad++;
     } else {
-        if (stockDisponible <= 0) {
-            alert(`"${nombre}" se encuentra totalmente agotado.`);
-            return;
-        }
-        // Guardamos el stock maximo dentro del objeto del carrito para usarlo en los botones + y -
-        carrito.push({ id, nombre, precio, cantidad: 1, stockMax: stockDisponible });
+        // Añadimos el producto con la estructura limpia que espera el admin
+        carrito.push({ 
+            id_producto: idProducto, 
+            nombre: nombre, 
+            precio: parseFloat(precio), 
+            cantidad: 1 
+        });
     }
-    cerrarBuscador();
-    actualizarVistaTicket();
+    
+    // CORRECCIÓN 1: Usamos el nombre exacto de tu función original para cerrar el panel visual
+    if (typeof cerrarModalBusqueda === "function") {
+        cerrarModalBusqueda();
+    }
+    
+    // CORRECCIÓN 2: Ejecutamos la función nativa que renderiza el ticket en tu panel.html
+    if (typeof actualizarTablaTicket === "function") {
+        actualizarTablaTicket();
+    }
 }
 
 function quitarDelCarrito(index) {
     carrito.splice(index, 1);
-    actualizarVistaTicket();
+    if (typeof actualizarTablaTicket === "function") {
+        actualizarTablaTicket();
+    }
 }
 
 function cambiarCantidad(idx, delta) {
+    if (!carrito[idx]) return;
     const nuevoValor = carrito[idx].cantidad + delta;
-    
     if (nuevoValor <= 0) {
         quitarDelCarrito(idx);
     } else {
-        // Validamos contra el stockMax guardado en el paso anterior
-        if (delta > 0 && nuevoValor > carrito[idx].stockMax) {
-            alert(`Límite alcanzado. Solo hay ${carrito[idx].stockMax} unidades disponibles en inventario.`);
-            return;
-        }
         carrito[idx].cantidad = nuevoValor;
-        actualizarVistaTicket();
+        if (typeof actualizarTablaTicket === "function") {
+            actualizarTablaTicket();
+        }
+    }
+}
+
+function limpiarCarritoCliente() {
+    carrito = [];
+    if (typeof actualizarTablaTicket === "function") {
+        actualizarTablaTicket();
     }
 }
 
