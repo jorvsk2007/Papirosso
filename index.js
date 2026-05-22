@@ -106,67 +106,74 @@ app.post('/api/ventas', async (req, res) => {
         return res.status(400).json({ error: "El carrito de ventas está completamente vacío." });
     }
 
-    // El objeto 'pool' requiere estar configurado e importado previamente con la librería 'pg'
-    const client = await pool.connect(); 
-    
     try {
-        await client.query('BEGIN');
-
-        // 1. INSERTAR LA CABECERA DE LA VENTA
-        const queryVenta = `
-            INSERT INTO ventas (precio_total, curp_cliente, curp_trabajador, fecha) 
-            VALUES ($1, $2, $3, NOW()) RETURNING id_venta;
-        `;
-        
+        // 1. Insertar la cabecera de la venta en la tabla 'ventas'
         const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
         
-        const resVenta = await client.query(queryVenta, [precio_total, clienteId, curp_trabajador]);
-        const id_venta = resVenta.rows[0].id_venta;
+        const { data: nuevaVenta, error: errVenta } = await supabase
+            .from('ventas')
+            .insert([{ 
+                precio_total: parseFloat(precio_total), 
+                curp_cliente: clienteId, 
+                curp_trabajador: curp_trabajador,
+                fecha: new Date().toISOString()
+            }])
+            .select();
 
-        // 2. RECORRER CADA ARTÍCULO
+        if (errVenta) {
+            return res.status(400).json({ error: "Error en venta: " + errVenta.message });
+        }
+
+        const id_venta = nuevaVenta[0].id_venta;
+
+        // 2. Recorrer los artículos para validar stock, registrar detalle y descontar
         for (const item of detalles) {
             
-            // CORRECCIÓN: 'producto' en singular para coincidir con la BD
-            const verificarStock = await client.query(
-                'SELECT cant_exist, nombre FROM producto WHERE id_producto = $1 FOR UPDATE', 
-                [item.id]
-            );
-            
-            const productoBD = verificarStock.rows[0];
-            
-            if (!productoBD) {
-                throw new Error(`El producto con código ${item.id} no existe en el catálogo.`);
+            // Consultar existencias actuales en 'producto' (singular)
+            const { data: productoBD, error: errStock } = await supabase
+                .from('producto')
+                .select('cant_exist, nombre')
+                .eq('id_producto', item.id_producto || item.id)
+                .single();
+
+            if (errStock || !productoBD) {
+                return res.status(400).json({ error: `El producto con código ${item.id_producto || item.id} no existe.` });
             }
 
             if (productoBD.cant_exist < item.cantidad) {
-                throw new Error(`Stock insuficiente para "${productoBD.nombre}". Solicitado: ${item.cantidad}, Disponible: ${productoBD.cant_exist}`);
+                return res.status(400).json({ error: `Stock insuficiente para "${productoBD.nombre}".` });
             }
 
-            // CORRECCIÓN: 'detalle_venta' en singular
-            const queryDetalle = `
-                INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) 
-                VALUES ($1, $2, $3, $4);
-            `;
-            await client.query(queryDetalle, [id_venta, item.id, item.cantidad, item.precio]);
+            // Insertar en 'detalle_venta' (singular)
+            const { error: errDetalle } = await supabase
+                .from('detalle_venta')
+                .insert([{
+                    id_venta: id_venta,
+                    id_producto: item.id_producto || item.id,
+                    cantidad: item.cantidad,
+                    precio_unitario: parseFloat(item.precio)
+                }]);
 
-            // CORRECCIÓN: 'producto' en singular para descontar el stock
-            const queryDescontarStock = `
-                UPDATE producto 
-                SET cant_exist = cant_exist - $1 
-                WHERE id_producto = $2;
-            `;
-            await client.query(queryDescontarStock, [item.cantidad, item.id]);
+            if (errDetalle) {
+                return res.status(400).json({ error: "Error en detalle: " + errDetalle.message });
+            }
+
+            // Descontar del inventario en la tabla 'producto'
+            const nuevoStock = productoBD.cant_exist - item.cantidad;
+            const { error: errUpdate } = await supabase
+                .from('producto')
+                .update({ cant_exist: nuevoStock })
+                .eq('id_producto', item.id_producto || item.id);
+
+            if (errUpdate) {
+                return res.status(400).json({ error: "Error al actualizar inventario: " + errUpdate.message });
+            }
         }
 
-        await client.query('COMMIT');
         return res.status(201).json({ success: true, id_venta: id_venta });
 
-    } catch (error) {
-        await client.query('ROLLBACK');
-        console.error("❌ ERROR EN TRANSACCIÓN DE VENTA:", error.message);
-        return res.status(400).json({ error: error.message });
-    } finally {
-        client.release();
+    } catch (err) {
+        return res.status(500).json({ error: `Error inesperado: ${err.message}` });
     }
 });
 
