@@ -727,17 +727,20 @@ async function guardarNuevoUsuario(event) {
     const nombre = document.getElementById('alta-nombre').value.trim();
     const apellidos = document.getElementById('alta-apellidos').value.trim();
     const password = document.getElementById('alta-password').value; 
+    const correo = document.getElementById('alta-correo').value.trim(); // 👈 Capturamos el correo nuevo
 
     if (curp.length !== 18) {
         return alert("La CURP debe tener exactamente 18 caracteres.");
     }
 
+    // Incorporamos el correo al objeto de datos
     const payload = {
         tipo: tipo,
         curp: curp,
         nombre: nombre,
         apellidos: apellidos,
-        password: password 
+        password: password,
+        correo: correo 
     };
 
     if (tipo === 'trabajador') {
