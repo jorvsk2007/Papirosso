@@ -304,7 +304,7 @@ async function filtrarProductos(termino) {
                     <td class="p-3 font-semibold text-slate-800">${p.nombre}</td>
                     <td class="p-3 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
                     <td class="p-3 font-bold ${p.cant_exist <= 5 ? 'text-red-500' : 'text-emerald-600'}">${p.cant_exist}</td>
-                    <td class="p-3"><button class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">Añadir</button></td>
+                    <td class="p-3"><button class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio}, ${p.cant_exist})">Añadir</button></td>
                 </tr>
             `).join('');
         }
@@ -360,12 +360,21 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-function añadirAlCarrito(id, nombre, precio) {
+function añadirAlCarrito(id, nombre, precio, stockDisponible) {
     const index = carrito.findIndex(item => item.id === id);
     if (index !== -1) {
+        if (carrito[index].cantidad >= stockDisponible) {
+            alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
+            return;
+        }
         carrito[index].cantidad++;
     } else {
-        carrito.push({ id, nombre, precio, cantidad: 1 });
+        if (stockDisponible <= 0) {
+            alert(`"${nombre}" se encuentra totalmente agotado.`);
+            return;
+        }
+        // Guardamos el stock maximo dentro del objeto del carrito para usarlo en los botones + y -
+        carrito.push({ id, nombre, precio, cantidad: 1, stockMax: stockDisponible });
     }
     cerrarBuscador();
     actualizarVistaTicket();
@@ -378,9 +387,15 @@ function quitarDelCarrito(index) {
 
 function cambiarCantidad(idx, delta) {
     const nuevoValor = carrito[idx].cantidad + delta;
+    
     if (nuevoValor <= 0) {
         quitarDelCarrito(idx);
     } else {
+        // Validamos contra el stockMax guardado en el paso anterior
+        if (delta > 0 && nuevoValor > carrito[idx].stockMax) {
+            alert(`Límite alcanzado. Solo hay ${carrito[idx].stockMax} unidades disponibles en inventario.`);
+            return;
+        }
         carrito[idx].cantidad = nuevoValor;
         actualizarVistaTicket();
     }
