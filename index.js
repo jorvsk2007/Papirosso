@@ -154,9 +154,16 @@ app.post('/api/ventas', async (req, res) => {
             }
 
             // Insertar en 'detalle_venta' (singular)
+            // ... (código anterior donde verificas el stock se queda igual) ...
+
+            // Generamos un ID único para este detalle en específico
+            const idDetalleManual = `DET-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+            // Insertar en 'detalle_venta' (singular)
             const { error: errDetalle } = await supabase
                 .from('detalle_venta')
                 .insert([{
+                    id_detalle: idDetalleManual, // <--- AÑADIMOS EL ID MANUAL AQUÍ
                     id_venta: id_venta,
                     id_producto: item.id_producto || item.id,
                     cantidad: item.cantidad,
@@ -166,6 +173,8 @@ app.post('/api/ventas', async (req, res) => {
             if (errDetalle) {
                 return res.status(400).json({ error: "Error en detalle: " + errDetalle.message });
             }
+
+            // ... (código posterior donde descuentas el stock se queda igual) ...
 
             // Descontar del inventario en la tabla 'producto'
             const nuevoStock = productoBD.cant_exist - item.cantidad;
