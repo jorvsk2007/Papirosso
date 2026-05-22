@@ -445,22 +445,20 @@ async function registrarVenta() {
     try {
         const totalVenta = parseFloat(document.getElementById('display-total').innerText.replace('$', ''));
         
-        // =========================================================================
-        // CORRECCIÓN AQUÍ: Convertimos el carrito al formato que espera el backend
-        // Cambiamos "id" por "id_producto" para que coincida con tus tablas SQL
-        // =========================================================================
-        const detallesMapeados = carrito.map(item => ({
-            id: item.id,               // Mantenemos 'id' por si el backend lo lee así
-            id_producto: item.id,      // Agregamos 'id_producto' explícito para evitar fallos de inserción
-            cantidad: item.cantidad,
-            precio: item.precio
+        // Mapeamos el carrito asegurando que viaje tanto "id" como "id_producto" de forma segura
+        const detallesFormateados = carrito.map(item => ({
+            id: item.id,
+            id_producto: item.id,
+            nombre: item.nombre,
+            precio: parseFloat(item.precio),
+            cantidad: parseInt(item.cantidad)
         }));
 
         const ventaData = {
             precio_total: totalVenta,
             curp_cliente: clienteSeleccionado,
             curp_trabajador: usuarioActual.curp,
-            detalles: detallesMapeados // Enviamos el arreglo limpio y estandarizado
+            detalles: detallesFormateados
         };
 
         const respuesta = await fetch(`${urlBase}/ventas`, {
@@ -469,30 +467,15 @@ async function registrarVenta() {
             body: JSON.stringify(ventaData)
         });
 
-        // Verificamos primero el tipo de contenido antes de procesar el JSON
-        const contentType = respuesta.headers.get("content-type");
-        let resultado;
-        
-        if (contentType && contentType.includes("application/json")) {
-            resultado = await respuesta.json();
-        } else {
-            // Si el servidor responde con HTML, capturamos el texto plano para ver el error real
-            const textoError = await respuesta.text();
-            console.error("Error del servidor (HTML):", textoError);
-            throw new Error("El servidor devolvió una respuesta inesperada (HTML). Revisa la consola de Render.");
-        }
+        const resultado = await respuesta.json();
 
         if (respuesta.ok) {
             alert("Venta registrada con éxito: " + (resultado.id_venta || "OK"));
             totalVentaAnterior = totalVenta;
             carrito = [];
-            
-            // Si tienes una función para limpiar la interfaz del ticket, ejecútala aquí (ej. actualizarVistaTicket())
-            if (typeof actualizarVistaTicket === 'function') actualizarVistaTicket();
-            
             switchTab('section-ventas', document.getElementById('nav-ventas'));
         } else {
-            throw new Error(resultado.error || "Error desconocido en el servidor");
+            throw new Error(resultado.error);
         }
     } catch (err) {
         alert("No se pudo registrar: " + err.message);
