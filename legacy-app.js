@@ -910,3 +910,111 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// =======================================================
+// LÓGICA COMPLEMENTARIA PARA LA TIENDA PÚBLICA (ONLINE)
+// =======================================================
+
+// 1. Función para añadir un artículo al carrito
+function añadirAlCarrito(id_producto, nombre, precio, stockMaximo) {
+    // Verificar si el producto ya está en el carrito
+    const itemExistente = carrito.find(item => item.id_producto === id_producto);
+
+    if (itemExistente) {
+        if (itemExistente.cantidad >= stockMaximo) {
+            alert(`Lo sentimos, solo quedan ${stockMaximo} piezas disponibles de este producto.`);
+            return;
+        }
+        itemExistente.cantidad++;
+    } else {
+        // Insertarlo por primera vez al arreglo global
+        carrito.push({
+            id_producto: id_producto,
+            nombre: nombre,
+            precio: parseFloat(precio),
+            cantidad: 1
+        });
+    }
+
+    actualizarInterfazCarritoPublico();
+}
+
+// 2. Función para redibujar la barra lateral del carrito
+function actualizarInterfazCarritoPublico() {
+    const cartItemsContainer = document.getElementById('cart-items');
+    const cartTotalContainer = document.getElementById('cart-total');
+
+    if (!cartItemsContainer) return; // Protección si no estamos en la vista cliente
+
+    if (carrito.length === 0) {
+        cartItemsContainer.innerHTML = 'Tu carrito está vacío';
+        if (cartTotalContainer) cartTotalContainer.textContent = '$0.00';
+        return;
+    }
+
+    let totalAcumulado = 0;
+
+    cartItemsContainer.innerHTML = carrito.map((item, index) => {
+        const subtotal = item.precio * item.cantidad;
+        totalAcumulado += subtotal;
+
+        return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-b: 1px solid #f1f5f9; font-size: 0.9rem;">
+            <div style="flex: 1; padding-right: 8px;">
+                <p style="font-weight: 600; margin: 0; color: #1e293b;">${item.nombre}</p>
+                <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0;">$${item.precio.toFixed(2)} c/u</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight: bold; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155;">x${item.cantidad}</span>
+                <span style="font-weight: 700; color: #0f172a; min-width: 60px; text-align: right;">$${subtotal.toFixed(2)}</span>
+                <button onclick="eliminarDelCarritoPublico(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0 4px;">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    if (cartTotalContainer) {
+        cartTotalContainer.textContent = `$${totalAcumulado.toFixed(2)}`;
+    }
+}
+
+// 3. Quitar unidades o eliminar un producto del carrito
+function eliminarDelCarritoPublico(index) {
+    if (carrito[index].cantidad > 1) {
+        carrito[index].cantidad--;
+    } else {
+        carrito.splice(index, 1);
+    }
+    actualizarInterfazCarritoPublico();
+}
+
+// 4. Limpiar el carrito completo al finalizar compra
+function limpiarCarritoCliente() {
+    carrito = [];
+    actualizarInterfazCarritoPublico();
+}
+
+// =======================================================
+// LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
+// =======================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const publicSearchInput = document.getElementById('public-search');
+    
+    if (publicSearchInput) {
+        publicSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const tarjetas = document.querySelectorAll('#product-grid > div');
+
+            tarjetas.forEach(tarjeta => {
+                // Buscamos el título h3 dentro de cada tarjeta de producto
+                const nombreProducto = tarjeta.querySelector('h3').textContent.toLowerCase();
+                const idProducto = tarjeta.querySelector('span').textContent.toLowerCase();
+
+                if (nombreProducto.includes(query) || idProducto.includes(query)) {
+                    tarjeta.style.display = 'flex'; // Muestra la tarjeta si coincide
+                } else {
+                    tarjeta.style.display = 'none'; // La oculta si no coincide
+                }
+            });
+        });
+    }
+});
