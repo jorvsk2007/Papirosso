@@ -1035,25 +1035,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Cambia la interfaz para ver la tabla de compras del cliente logueado
+// =======================================================
+// INTERFAZ DUAL SPLIT: HISTORIAL DE COMPRAS DEL CLIENTE
+// =======================================================
 async function verMisCompras() {
     if (!usuarioActual || !usuarioActual.curp) {
         alert("Por favor inicia sesión para ver tus compras.");
         return;
     }
 
-    // Ocultar catálogo y carrito
-    document.getElementById('product-grid').classList.add('hidden');
-    const cartPanel = document.querySelector('.cart-panel');
-    if (cartPanel) cartPanel.classList.add('hidden');
-    const searchSection = document.querySelector('.store-hero');
-    if (searchSection) searchSection.classList.add('hidden');
+    // Ocultar catálogo de productos y banner principal (Hero)
+    const productGrid = document.getElementById('product-grid');
+    if (productGrid) productGrid.classList.add('hidden');
+    
+    const storeHero = document.getElementById('store-hero-section');
+    if (storeHero) storeHero.classList.add('hidden');
 
-    // Mostrar sección de compras
+    // Desplegar la sección de compras dual sin alterar la barra del carrito
     const comprasSection = document.getElementById('compras-cliente-section');
-    comprasSection.classList.remove('hidden');
+    if (comprasSection) comprasSection.classList.remove('hidden');
 
-    const bodyTabla = document.getElementById('compras-cliente-body');
-    bodyTabla.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Cargando tus compras...</td></tr>';
+    const listaCards = document.getElementById('compras-cliente-lista-cards');
+    if (listaCards) {
+        listaCards.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.85rem; padding:15px;">Buscando tus tickets...</p>';
+    }
+    
+    // Resetear el panel informativo de la derecha
+    const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
+    const contenido = document.getElementById('compras-cliente-detalle-contenido');
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (contenido) contenido.classList.add('hidden');
 
     const urlBase = obtenerUrlBaseAPI();
 
@@ -1061,47 +1072,109 @@ async function verMisCompras() {
         const respuesta = await fetch(`${urlBase}/clientes/${usuarioActual.curp}/compras`);
         const compras = await respuesta.json();
 
-        if (compras.length === 0) {
-            bodyTabla.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 font-medium">Aún no has registrado ninguna compra en la sucursal.</td></tr>';
+        if (!listaCards) return;
+
+        if (!compras || compras.length === 0) {
+            listaCards.innerHTML = '<p style="text-align:center; color:#94a3b8; font-size:0.85rem; padding: 20px;">No cuentas con compras registradas en este establecimiento.</p>';
             return;
         }
 
-        bodyTabla.innerHTML = compras.map(c => {
+        listaCards.innerHTML = compras.map(c => {
             const fechaFormateada = new Date(c.fecha).toLocaleString('es-MX', {
                 dateStyle: 'medium',
                 timeStyle: 'short'
             });
 
             return `
-                <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
-                    <td class="px-4 py-3 font-bold text-blue-600 font-mono text-sm">${c.id_venta}</td>
-                    <td class="px-4 py-3 text-slate-500 text-xs">${fechaFormateada}</td>
-                    <td class="px-4 py-3 font-extrabold text-emerald-600">$${parseFloat(c.precio_total).toFixed(2)}</td>
-                    <td class="px-4 py-3 text-center">
-                        <button onclick="verDetalleTicket('${c.id_venta}', '${fechaFormateada}', ${c.precio_total})" 
-                            class="px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl hover:bg-blue-600 hover:text-white font-bold text-xs transition">
-                            👁️ Ver Ticket
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; font-family:'Inter',sans-serif;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-weight: 700; color: #2563eb; font-size: 0.85rem;">${c.id_venta}</span>
+                        <span style="font-weight: 800; color: #10b981; font-size: 0.9rem;">$${parseFloat(c.precio_total).toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                        <span style="color: #64748b; font-size: 0.7rem;">${fechaFormateada}</span>
+                        <button onclick="verDetalleEnPanelDerecho('${c.id_venta}', '${fechaFormateada}', ${c.precio_total})" 
+                            style="background: #2563eb; border: none; color: white; font-size: 0.7rem; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: 0.2s;">
+                            Ver Detalles ➡️
                         </button>
-                    </td>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error(err);
+        if (listaCards) {
+            listaCards.innerHTML = '<p style="text-align:center; color:#ef4444; font-size:0.85rem;">Error al sincronizar con el servidor.</p>';
+        }
+    }
+}
+
+async function verDetalleEnPanelDerecho(idVenta, fechaStr, totalVenta) {
+    const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
+    const contenido = document.getElementById('compras-cliente-detalle-contenido');
+    const bodyProductos = document.getElementById('panel-detalle-productos-body');
+
+    if (placeholder) placeholder.classList.add('hidden');
+    if (contenido) contenido.classList.remove('hidden');
+
+    const elFolio = document.getElementById('panel-detalle-folio');
+    const elFecha = document.getElementById('panel-detalle-fecha');
+    const elTotal = document.getElementById('panel-detalle-total');
+
+    if (elFolio) elFolio.innerText = `Folio: ${idVenta}`;
+    if (elFecha) elFecha.innerText = `Realizado: ${fechaStr}`;
+    if (elTotal) elTotal.innerText = `$${parseFloat(totalVenta).toFixed(2)}`;
+
+    if (bodyProductos) {
+        bodyProductos.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:12px; color:#94a3b8; font-size:0.8rem;">Desglosando artículos...</td></tr>';
+    }
+
+    const urlBase = obtenerUrlBaseAPI();
+
+    try {
+        const respuesta = await fetch(`${urlBase}/ventas/${encodeURIComponent(idVenta)}/detalles`);
+        const detalles = await respuesta.json();
+
+        if (!bodyProductos) return;
+
+        if (!detalles || detalles.length === 0) {
+            bodyProductos.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:12px; color:#94a3b8; font-size:0.8rem;">No se encontraron artículos asignados.</td></tr>';
+            return;
+        }
+
+        bodyProductos.innerHTML = detalles.map(d => {
+            // CRUCE EN MEMORIA: Buscamos el objeto de producto usando el id_producto para obtener su nombre real
+            const matchingProd = listaProductosGlobal.find(p => p.id_producto === d.id_producto);
+            const nombreMostrar = matchingProd ? matchingProd.nombre : `Artículo ${d.id_producto}`;
+            const subtotal = d.cantidad * d.precio_unitario;
+
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px 4px; color: #1e293b; font-weight: 600; text-align: left;">${nombreMostrar}</td>
+                    <td style="padding: 8px 4px; text-align: center; color: #475569; font-weight: 700;">${d.cantidad}</td>
+                    <td style="padding: 8px 4px; text-align: right; color: #0f172a; font-weight: 700;">$${subtotal.toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
 
     } catch (err) {
         console.error(err);
-        bodyTabla.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error al consultar el historial.</td></tr>';
+        if (bodyProductos) {
+            bodyProductos.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:12px; color:#ef4444; font-size:0.8rem;">Error de lectura.</td></tr>';
+        }
     }
 }
 
-// Regresa al catálogo clásico de la tienda pública
 function regresarATiendaPublica() {
-    document.getElementById('compras-cliente-section').classList.add('hidden');
-    
-    document.getElementById('product-grid').classList.remove('hidden');
-    const cartPanel = document.querySelector('.cart-panel');
-    if (cartPanel) cartPanel.classList.remove('hidden');
-    const searchSection = document.querySelector('.store-hero');
-    if (searchSection) searchSection.classList.remove('hidden');
+    const comprasSection = document.getElementById('compras-cliente-section');
+    if (comprasSection) comprasSection.classList.add('hidden');
+
+    const productGrid = document.getElementById('product-grid');
+    if (productGrid) productGrid.classList.remove('hidden');
+
+    const storeHero = document.getElementById('store-hero-section');
+    if (storeHero) storeHero.classList.remove('hidden');
 }
 
 // Abre el modal flotante consultando los detalles específicos del folio
