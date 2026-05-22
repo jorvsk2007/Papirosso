@@ -397,23 +397,14 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-function añadirAlCarrito(idProducto, nombre, precio, stockDisponible) {
-    // Buscamos estrictamente usando la propiedad nativa id_producto
+function añadirAlCarrito(idProducto, nombre, precio) {
+    // Buscamos si el producto ya está en el carrito del admin
     const index = carrito.findIndex(item => item.id_producto === idProducto);
     
     if (index !== -1) {
-        // Validación de stock si el admin lo provee
-        if (stockDisponible !== undefined && carrito[index].cantidad >= stockDisponible) {
-            alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
-            return;
-        }
         carrito[index].cantidad++;
     } else {
-        if (stockDisponible !== undefined && stockDisponible <= 0) {
-            alert(`"${nombre}" se encuentra totalmente agotado.`);
-            return;
-        }
-        // Corrección del objeto nativo: Eliminamos el 'Math' erróneo que rompía el flujo
+        // Añadimos el objeto de forma limpia al carrito (sin el Math suelto)
         carrito.push({ 
             id_producto: idProducto, 
             nombre: nombre, 
@@ -421,24 +412,18 @@ function añadirAlCarrito(idProducto, nombre, precio, stockDisponible) {
             cantidad: 1 
         });
     }
-
-    // Cerramos el buscador del Punto de Venta si existe
-    const modalBusqueda = document.getElementById('modal-busqueda');
-    if (modalBusqueda && typeof cerrarBuscador === "function") {
-        cerrarBuscador();
-    }
     
-    // El admin requiere actualizar exclusivamente la vista del ticket
-    if (typeof actualizarVistaTicket === "function") {
-        actualizarVistaTicket();
-    }
+    // Si el buscador modal del Punto de venta está abierto, lo cerramos
+    const modalBusqueda = document.getElementById('modal-busqueda');
+    if (modalBusqueda) cerrarBuscador();
+    
+    // Actualizamos la tabla del ticket en tiempo real
+    actualizarVistaTicket();
 }
 
 function quitarDelCarrito(index) {
     carrito.splice(index, 1);
-    if (typeof actualizarVistaTicket === "function") {
-        actualizarVistaTicket();
-    }
+    actualizarVistaTicket();
 }
 
 function cambiarCantidad(idx, delta) {
@@ -448,47 +433,53 @@ function cambiarCantidad(idx, delta) {
         quitarDelCarrito(idx);
     } else {
         carrito[idx].cantidad = nuevoValor;
-        if (typeof actualizarVistaTicket === "function") {
-            actualizarVistaTicket();
-        }
-    }
-}
-
-function limpiarCarritoCliente() {
-    carrito = [];
-    if (typeof actualizarVistaTicket === "function") {
         actualizarVistaTicket();
     }
 }
 
+// ESTA ES LA FUNCIÓN QUE SE HABÍA BORRADO Y RECONSTRUIMOS AL 100% PARA TU ADMIN
 function actualizarVistaTicket() {
-    const body = document.getElementById('ticket-body');
+    const tBody = document.getElementById('ticket-body');
     const displayTotal = document.getElementById('display-total');
-    if (!body) return;
+    if (!tBody) return; // Si no estamos en la pestaña de ventas, salimos de forma segura
 
     if (carrito.length === 0) {
-        body.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400 font-medium">El ticket de cobro está vacío. Adiciona un artículo.</td></tr>';
-        if (displayTotal) displayTotal.innerText = "$0.00";
+        tBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="py-8 text-center text-slate-400 font-medium">
+                    🛒 El ticket está vacío. Agrega artículos desde el buscador.
+                </td>
+            </tr>`;
+        if (displayTotal) displayTotal.innerText = '$0.00';
         return;
     }
 
     let sumaTotal = 0;
-    body.innerHTML = carrito.map((item, idx) => {
-        const subtotal = item.precio * item.cantidad;
+
+    tBody.innerHTML = carrito.map((item, idx) => {
+        const subtotal = item.cantidad * item.precio;
         sumaTotal += subtotal;
+
         return `
-            <tr class="border-b border-slate-100">
-                <td class="py-3 px-2 font-semibold text-slate-800">${item.nombre}</td>
+            <tr class="hover:bg-slate-50/80 transition border-b border-slate-100 text-slate-700">
+                <td class="py-3 px-2 font-semibold text-slate-800">
+                    ${item.nombre} <br>
+                    <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">${item.id_producto}</span>
+                </td>
                 <td class="py-3 px-2">
                     <div class="flex items-center gap-2">
-                        <button onclick="cambiarCantidad(${idx}, -1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 transition">-</button>
-                        <span class="font-bold text-slate-800 text-sm w-4 text-center">${item.cantidad}</span>
-                        <button onclick="cambiarCantidad(${idx}, 1)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 transition">+</button>
+                        <button onclick="cambiarCantidad(${idx}, -1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded flex items-center justify-center transition text-xs">-</button>
+                        <span class="font-bold text-slate-900 w-4 text-center text-sm">${item.cantidad}</span>
+                        <button onclick="cambiarCantidad(${idx}, 1)" class="w-6 h-6 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-bold rounded flex items-center justify-center transition text-xs">+</button>
                     </div>
                 </td>
-                <td class="py-3 px-2 font-medium text-slate-500">$${parseFloat(item.precio).toFixed(2)}</td>
-                <td class="py-3 px-2 font-bold text-slate-800">$${subtotal.toFixed(2)}</td>
-                <td class="py-3 px-2 text-center"><button onclick="quitarDelCarrito(${idx})" class="text-rose-500 hover:text-rose-700 font-bold transition">✖</button></td>
+                <td class="py-3 px-2 font-medium text-slate-500">$${item.precio.toFixed(2)}</td>
+                <td class="py-3 px-2 font-bold text-slate-900">$${subtotal.toFixed(2)}</td>
+                <td class="py-3 px-2 text-center">
+                    <button onclick="quitarDelCarrito(${idx})" class="text-rose-500 hover:text-rose-700 p-1.5 hover:bg-rose-50 rounded-lg transition">
+                        🗑️
+                    </button>
+                </td>
             </tr>
         `;
     }).join('');
