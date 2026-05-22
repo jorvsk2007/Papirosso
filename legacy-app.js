@@ -634,13 +634,15 @@ function renderizarClientesEnPanel(lista) {
     if (!tablaBody) return;
 
     if (!lista || lista.length === 0) {
-        tablaBody.innerHTML = '<tr><td colspan="2" style="padding:20px; text-align:center;" class="text-slate-400">No se encontraron clientes registrados</td></tr>';
+        tablaBody.innerHTML = '<tr><td colspan="3" style="padding:20px; text-align:center;" class="text-slate-400">No se encontraron clientes registrados</td></tr>';
         return;
     }
     tablaBody.innerHTML = lista.map(c => `
         <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
             <td class="px-6 py-4 font-semibold text-slate-800">${c.persona ? c.persona.nombre + ' ' + c.persona.apellidos : 'Sin Nombre'}</td>
             <td class="px-6 py-4"><code class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-mono">${c.curp}</code></td>
+            <!-- NUEVO: Celda que renderiza la contraseña del cliente -->
+            <td class="px-6 py-4 text-slate-500 font-mono text-sm">${c.password || c.contrasena || '—'}</td>
         </tr>`).join('');
 }
 
@@ -660,16 +662,16 @@ function toggleCamposRegistro() {
     const tipo = document.getElementById('alta-tipo').value;
     const camposTrabajador = document.getElementById('campos-trabajador');
     
+    document.getElementById('alta-password').required = true;
+    
     if (tipo === 'trabajador') {
         camposTrabajador.classList.remove('hidden');
         document.getElementById('alta-rol').required = true;
         document.getElementById('alta-sueldo').required = true;
-        document.getElementById('alta-password').required = true;
     } else {
         camposTrabajador.classList.add('hidden');
         document.getElementById('alta-rol').required = false;
         document.getElementById('alta-sueldo').required = false;
-        document.getElementById('alta-password').required = false;
     }
 }
 
@@ -681,6 +683,7 @@ async function guardarNuevoUsuario(event) {
     const curp = document.getElementById('alta-curp').value.trim().toUpperCase();
     const nombre = document.getElementById('alta-nombre').value.trim();
     const apellidos = document.getElementById('alta-apellidos').value.trim();
+    const password = document.getElementById('alta-password').value; 
 
     if (curp.length !== 18) {
         return alert("La CURP debe tener exactamente 18 caracteres.");
@@ -690,13 +693,13 @@ async function guardarNuevoUsuario(event) {
         tipo: tipo,
         curp: curp,
         nombre: nombre,
-        apellidos: apellidos
+        apellidos: apellidos,
+        password: password 
     };
 
     if (tipo === 'trabajador') {
         payload.rol = document.getElementById('alta-rol').value;
         payload.sueldo = parseFloat(document.getElementById('alta-sueldo').value);
-        payload.password = document.getElementById('alta-password').value;
     }
 
     try {
