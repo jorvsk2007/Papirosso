@@ -102,36 +102,33 @@ app.get('/api/clientes', async (req, res) => {
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
     
-    // Validar de inmediato que el carrito no llegue vacío
     if (!detalles || detalles.length === 0) {
         return res.status(400).json({ error: "El carrito de ventas está completamente vacío." });
     }
 
+    // El objeto 'pool' requiere estar configurado e importado previamente con la librería 'pg'
     const client = await pool.connect(); 
     
     try {
-        // Iniciamos la transacción SQL
         await client.query('BEGIN');
 
         // 1. INSERTAR LA CABECERA DE LA VENTA
-        // Asegúrate de que los nombres de las columnas 'precio_total', 'curp_cliente', 'curp_trabajador' correspondan a tu tabla 'ventas'
         const queryVenta = `
             INSERT INTO ventas (precio_total, curp_cliente, curp_trabajador, fecha) 
             VALUES ($1, $2, $3, NOW()) RETURNING id_venta;
         `;
         
-        // Si el cliente es "Público General", el frontend manda null o string vacío; lo guardamos como NULL en BD
         const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
         
         const resVenta = await client.query(queryVenta, [precio_total, clienteId, curp_trabajador]);
         const id_venta = resVenta.rows[0].id_venta;
 
-        // 2. RECORRER CADA ARTÍCULO PARA VALIDAR, DISMINUIR STOCK E INSERTAR DETALLE
+        // 2. RECORRER CADA ARTÍCULO
         for (const item of detalles) {
             
-            // Buscamos el producto directo en la base de datos usando FOR UPDATE para bloquear la fila provisionalmente
+            // CORRECCIÓN: 'producto' en singular para coincidir con la BD
             const verificarStock = await client.query(
-                'SELECT cant_exist, nombre FROM productos WHERE id_producto = $1 FOR UPDATE', 
+                'SELECT cant_exist, nombre FROM producto WHERE id_producto = $1 FOR UPDATE', 
                 [item.id]
             );
             
@@ -145,39 +142,30 @@ app.post('/api/ventas', async (req, res) => {
                 throw new Error(`Stock insuficiente para "${productoBD.nombre}". Solicitado: ${item.cantidad}, Disponible: ${productoBD.cant_exist}`);
             }
 
-            // 3. INSERTAR EN DETALLES_VENTAS
-            // Revisa si tu tabla relacional se llama 'detalles_ventas' o 'detalle_venta'
+            // CORRECCIÓN: 'detalle_venta' en singular
             const queryDetalle = `
-                INSERT INTO detalles_ventas (id_venta, id_producto, cantidad, precio_unitario) 
+                INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario) 
                 VALUES ($1, $2, $3, $4);
             `;
-            // Mapeamos los datos que vienen del frontend (item.id, item.cantidad, item.precio)
             await client.query(queryDetalle, [id_venta, item.id, item.cantidad, item.precio]);
 
-            // 4. ACTUALIZAR DISMINUYENDO EL STOCK EN LA TABLA PRODUCTOS
+            // CORRECCIÓN: 'producto' en singular para descontar el stock
             const queryDescontarStock = `
-                UPDATE productos 
+                UPDATE producto 
                 SET cant_exist = cant_exist - $1 
                 WHERE id_producto = $2;
             `;
             await client.query(queryDescontarStock, [item.cantidad, item.id]);
         }
 
-        // Si todos los pasos se completaron con éxito, confirmamos los cambios de forma permanente
         await client.query('COMMIT');
-        
-        // Enviamos SIEMPRE una respuesta JSON válida de éxito
         return res.status(201).json({ success: true, id_venta: id_venta });
 
     } catch (error) {
-        // En caso de que falle CUALQUIER inserción o validación, cancelamos todo el progreso para no corromper la BD
         await client.query('ROLLBACK');
         console.error("❌ ERROR EN TRANSACCIÓN DE VENTA:", error.message);
-        
-        // ¡Crucial! Devolvemos un JSON con el error para que el frontend no reciba HTML y se rompa
         return res.status(400).json({ error: error.message });
     } finally {
-        // Liberamos la conexión de vuelta al pool de PostgreSQL
         client.release();
     }
 });
