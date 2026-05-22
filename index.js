@@ -195,41 +195,94 @@ app.get('/api/reportes', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
 
-// --- RUTA COMPUESTA: REGISTRO DE TRABAJADORES O CLIENTES ---
+// --- RUTA COMPUESTA INTELIGENTE: PERMITE ASIGNAR ROLES A PERSONAS YA EXISTENTES ---
 app.post('/api/usuarios/registro', async (req, res) => {
-    const { tipo, curp, nombre, apellidos, rol, sueldo, password } = req.body;
+    const { tipo, curp, nombre, apellidos, rol, sueldo, password, correo } = req.body;
 
-    if (!curp || !nombre || !apellidos) {
-        return res.status(400).json({ error: "CURP, nombre y apellidos son requeridos." });
+    if (!curp || !nombre || !apellidos || !correo) {
+        return res.status(400).json({ error: "CURP, nombre, apellidos y correo son requeridos." });
     }
 
-    // 1. Insertar en la tabla maestra de 'personas'
-    const { error: errPersona } = await supabase
-        .from('personas')
-        .insert([{ curp, nombre, apellidos }]);
+    try {
+        const curpLimpia = curp.trim().toUpperCase();
 
-    if (errPersona) {
-        return res.status(400).json({ error: "Error al registrar persona: " + errPersona.message });
-    }
+        // 1. Verificar si la persona ya existe en la tabla maestra 'persona'
+        const { data: personaExistente, error: errBuscar } = await supabase
+            .from('persona')
+            .select('curp')
+            .eq('curp', curpLimpia)
+            .maybeSingle(); // Usamos maybeSingle para que no truene si no encuentra nada
 
-    // 2. Insertar en la tabla subordinada según el tipo elegido
-    if (tipo === 'trabajador') {
-        if (!rol || !sueldo || !password) {
-            return res.status(400).json({ error: "Faltan datos de contratación del trabajador." });
+        if (errBuscar) {
+            return res.status(400).json({ error: "Error al verificar la persona: " + errBuscar.message });
         }
-        const { error: errTrabajador } = await supabase
-            .from('trabajadores')
-            .insert([{ curp, rol, sueldo, password }]);
 
-        if (errTrabajador) return res.status(400).json({ error: "Persona creada, pero falló el rol de trabajador: " + errTrabajador.message });
-    } else {
-        // Tipo Cliente
-        const { error: errCliente } = await supabase
-            .from('clientes')
-            .insert([{ curp }]);
+        // 2. Si NO existe en la tabla maestra, la insertamos por primera vez
+        if (!personaExistente) {
+            const { error: errPersona } = await supabase
+                .from('persona') 
+                .insert([{ curp: curpLimpia, nombre, apellidos, correo }]);
 
-        if (errCliente) return res.status(400).json({ error: "Persona creada, pero falló el registro en clientes: " + errCliente.message });
+            if (errPersona) {
+                return res.status(400).json({ error: "Error al registrar en tabla persona: " + errPersona.message });
+            }
+            console.log(`Persona nueva (${curpLimpia}) creada con éxito.`);
+        } else {
+            console.log(`La persona (${curpLimpia}) ya existía. Procediendo a asignación de rol.`);
+        }
+
+        // 3. Insertar en la tabla subordinada según el tipo elegido en el formulario
+        if (tipo === 'trabajador') {
+            if (!rol || !sueldo || !password) {
+                return res.status(400).json({ error: "Faltan datos de contratación del trabajador (rol, sueldo o contraseña)." });
+            }
+
+            // Validamos si ya está dada de alta en trabajadores para no duplicar puestos
+            const { data: yaEsTrabajador } = await supabase
+                .from('trabajadores')
+                .select('curp')
+                .eq('curp', curpLimpia)
+                .maybeSingle();
+
+            if (yaEsTrabajador) {
+                return res.status(400).json({ error: "Esta persona ya se encuentra registrada como Trabajador." });
+            }
+
+            // Al estar libre el RLS y existir la persona, insertamos directo
+            const { error: errTrabajador } = await supabase
+                .from('trabajadores')
+                .insert([{ curp: curpLimpia, rol, sueldo, password }]);
+
+            if (errTrabajador) {
+                return res.status(400).json({ error: "Error al insertar en la tabla trabajadores: " + errTrabajador.message });
+            }
+
+        } else {
+            // Tipo: Cliente
+            const { data: yaEsCliente } = await supabase
+                .from('cliente')
+                .select('curp')
+                .eq('curp', curpLimpia)
+                .maybeSingle();
+
+            if (yaEsCliente) {
+                return res.status(400).json({ error: "Esta persona ya se encuentra registrada como Cliente." });
+            }
+
+            const { error: errCliente } = await supabase
+                .from('cliente')
+                .insert([{ curp: curpLimpia }]);
+
+            if (errCliente) {
+                return res.status(400).json({ error: "Error al insertar en la tabla cliente: " + errCliente.message });
+            }
+        }
+
+        // Si todo sale bien, respondemos con éxito
+        return res.json({ success: true, message: `Asignación completada exitosamente como ${tipo}` });
+
+    } catch (globalErr) {
+        console.error("Error general en el servidor:", globalErr);
+        return res.status(500).json({ error: "Error interno del servidor: " + globalErr.message });
     }
-
-    res.json({ success: true, message: `Registro completado exitosamente como ${tipo}` });
 });
