@@ -258,75 +258,64 @@ function switchTab(tabId, botonActivado) {
 // 5. GESTIÓN DE PRODUCTOS E INVENTARIO
 // ==========================================
 async function irAProductos() {
-    const tablaBody = document.getElementById('inventario-tabla-body'); // Panel Admin
-    const productGrid = document.getElementById('product-grid');        // Tienda Pública
-    const btnContainer = document.getElementById('btn-nuevo-producto-container');
+    const mainPrivado = document.getElementById('main-content');
+    const gridPublico = document.getElementById('product-grid');
     const urlBase = obtenerUrlBaseAPI();
     
     try {
         const respuesta = await fetch(`${urlBase}/productos`);
         const data = await respuesta.json();
 
-        listaProductosGlobal = data || [];
-
-        // 1. MODO PANEL DE ADMINISTRADOR
-        if (tablaBody) {
-            const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
-            const puedeAgregar = (rol === 'admin' || rol === 'administrador' || rol === 'almacenista');
-
-            if (btnContainer) {
-                btnContainer.innerHTML = puedeAgregar ? `<button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : '';
-            }
-
-            tablaBody.innerHTML = data.map(p => `
-                <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                    <td class="px-6 py-4"><span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-mono font-bold text-xs">${p.id_producto}</span></td>
-                    <td class="px-6 py-4 font-semibold text-slate-800">${p.nombre}</td>
-                    <td class="px-6 py-4 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
-                    <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded'}">${p.cant_exist} pzas</span></td>
-                    <td class="px-6 py-4">
-                        <button onclick="reabastecerProducto('${p.id_producto}')" 
-                        class="px-2 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-semibold">
-                        Agregar Stock
-                        </button>
-                    </td>
-                </tr>`).join('');
-        }
-
-        // 2. MODO TIENDA PÚBLICA (Calculando el stock en vivo)
-        if (productGrid) {
+        // CASO 1: Si existe 'product-grid', estamos en cliente-publico.html
+        if (gridPublico) {
             if (!data || data.length === 0) {
-                productGrid.innerHTML = '<p class="text-slate-400 text-center col-span-full">No hay productos disponibles por el momento.</p>';
+                gridPublico.innerHTML = '<p class="no-products">No hay productos disponibles en este momento.</p>';
                 return;
             }
-            productGrid.innerHTML = data.map(p => {
-                // BUSCAMOS USANDO EXACTAMENTE id_producto PARA COMPATIBILIDAD TOTAL
-                const itemEnCarrito = carrito.find(item => item.id_producto === p.id_producto);
-                const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
-                
-                const stockDisponibleReal = p.cant_exist - cantidadEnCarrito;
-                const sinStock = stockDisponibleReal <= 0;
-
-                return `
-                    <div class="product-card ${sinStock ? 'opacity-60' : ''}" style="background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-direction: column; display: flex; justify-content: space-between;">
-                        <div>
-                            <span style="font-size: 0.75rem; color: #94a3b8; font-family: monospace; font-weight: bold;">${p.id_producto}</span>
-                            <h3 style="margin: 4px 0; font-size: 1.1rem; font-weight: 600; color: #1e293b;">${p.nombre}</h3>
-                            <p style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 8px 0;">$${parseFloat(p.precio).toFixed(2)}</p>
-                        </div>
-                        <div style="margin-top: 12px;">
-                            <p style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; color: ${sinStock ? '#ef4444' : '#16a34a'}">
-                                ${sinStock ? '❌ Agotado temporalmente' : `📦 Disponible: ${stockDisponibleReal} pzas`}
-                            </p>
-                            <button onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, ${p.cant_exist})" ${sinStock ? 'disabled' : ''} class="btn-confirm" style="width: 100%; padding: 10px; font-size: 0.85rem; cursor: ${sinStock ? 'not-allowed' : 'pointer'}; background: ${sinStock ? '#cbd5e1' : ''}; color: ${sinStock ? '#64748b' : ''}; border: none; border-radius: 8px; font-weight: bold;">
-                                ${sinStock ? 'Sin existencias' : '🛒 Añadir al carrito'}
-                            </button>
-                        </div>
-                    </div>`;
-            }).join('');
+            gridPublico.innerHTML = data.map(p => `
+                <article class="product-card">
+                    <div class="product-info">
+                        <span class="product-id">ID: ${p.id_producto}</span>
+                        <h3>${p.nombre}</h3>
+                        <p class="price">$${p.precio.toFixed(2)}</p>
+                        <p class="stock ${p.cant_exist <= 5 ? 'low-stock' : ''}">Disponibles: ${p.cant_exist}</p>
+                    </div>
+                    <button class="btn-confirm" onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre}', ${p.precio})">
+                        Añadir al carrito
+                    </button>
+                </article>
+            `).join('');
+            return; 
         }
-    } catch (e) {
-        console.error("Error al cargar productos", e);
+
+        // CASO 2: Panel privado de Administrador (usa main-content)
+        if (mainPrivado) {
+            const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
+            const puedeAgregar = (rol === 'admin' || rol === 'almacenista' || rol === 'administrador');
+
+            mainPrivado.innerHTML = `
+                <div style="background:white; padding:30px; border-radius:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                        <h2 style="margin:0;">Inventario General</h2>
+                        ${puedeAgregar ? `<button class="btn-confirm" onclick="abrirModalProducto()">+ Nuevo Producto</button>` : ''}
+                    </div>
+                    <table style="width:100%; text-align:left;">
+                        <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th></tr></thead>
+                        <tbody>
+                            ${data.map(p => `
+                                <tr>
+                                    <td>${p.id_producto}</td>
+                                    <td>${p.nombre}</td>
+                                    <td>$${parseFloat(p.precio).toFixed(2)}</td>
+                                    <td>${p.cant_exist} pzas</td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+    } catch (e) { 
+        console.error("Error al cargar productos", e); 
     }
 }
 
