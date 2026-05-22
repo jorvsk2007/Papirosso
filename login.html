@@ -10,19 +10,20 @@
 </head>
 <body class="login-page">
     <header class="page-header">
-        <a class="brand" href="index.html">papeleria_db</a>
-        <a class="button-link" href="cliente-publico.html">Entrar como Público</a>
+        <a class="brand" href="index.html">Papirosso</a>
+        <a class="button-link" href="cliente-publico.html">Continuar como invitado</a>
     </header>
 
     <main class="page-shell login-shell">
         <section class="login-card">
             <div class="login-intro">
                 <span class="eyebrow">Ventana de Acceso</span>
-                <h1>Inicia sesión en tu papelería digital</h1>
-                <p>Accede al panel de ventas, control de inventario y reportes como si fuera tu tienda en línea favorita.</p>
+                <h1>Inicia sesión</h1>
+                <p>Accede con tu curp y contraseña.
+                <br>Nota: La contraseña se te dio en la tienda física</p>
             </div>
             <form id="login-form" class="login-form" onsubmit="event.preventDefault(); ejecutarLogin();">
-                <label>CURP del trabajador</label>
+                <label>CURP</label>
                 <input id="login-curp" type="text" placeholder="Ej. GARC850101HDFABC01" autocomplete="off">
                 <label>Contraseña</label>
                 <input id="login-password" type="password" placeholder="Tu contraseña secreta">
