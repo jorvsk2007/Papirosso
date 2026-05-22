@@ -775,9 +775,14 @@ function verificarSesionPublica() {
     const userDisplay = document.getElementById('nav-user-curp');
     const btnSalir = document.getElementById('btn-cerrar-sesion-publico');
     const checkoutBtn = document.getElementById('checkout-button');
+    // Referencia al botón de mis compras
+    const btnMisCompras = document.getElementById('btn-mis-compras');
 
     if (sesion) {
         const usuario = JSON.parse(sesion);
+        
+        // CRUCIAL: Asignar al estado global para que las funciones de historial sepan qué CURP consultar
+        usuarioActual = usuario; 
         
         if (loginLink) loginLink.classList.add('hidden');
         if (userDisplay) {
@@ -785,6 +790,15 @@ function verificarSesionPublica() {
             userDisplay.classList.remove('hidden');
         }
         if (btnSalir) btnSalir.classList.remove('hidden');
+        
+        // Mostrar el botón de historial si el cliente está logueado
+        if (btnMisCompras) btnMisCompras.classList.remove('hidden');
+    } else {
+        // Asegurarnos de que si no hay sesión limpia, el estado global esté en null
+        usuarioActual = null;
+        
+        // Ocultar el botón de historial si no hay sesión activa
+        if (btnMisCompras) btnMisCompras.classList.add('hidden');
     }
 
     if (checkoutBtn) {
