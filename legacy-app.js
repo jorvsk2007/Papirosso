@@ -406,12 +406,11 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-// =======================================================
-// LÓGICA DEL CARRITO & PUNTO DE VENTA (SÓLO PANEL ADMIN)
-// =======================================================
 
 function añadirAlCarrito(idProducto, nombre, precio) {
-    // 1. Guardamos el producto en el arreglo global
+    console.log("Intentando agregar:", idProducto);
+
+    // 1. Lógica del carrito
     const index = carrito.findIndex(item => item.id_producto === idProducto);
     
     if (index !== -1) {
@@ -424,27 +423,24 @@ function añadirAlCarrito(idProducto, nombre, precio) {
             cantidad: 1 
         });
     }
-    
-    // 2. Intentamos actualizar la tabla del ticket visualmente
-    try {
-        if (typeof actualizarTablaTicket === "function") {
+
+    // 2. FORZAR CIERRE DEL MODAL
+    const modal = document.getElementById('modal-busqueda');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+
+    // 3. LA CLAVE: Llamar a la función que pinta el ticket
+    // Usamos un pequeño retraso (setTimeout) para asegurar que el DOM 
+    // esté listo para recibir los cambios aunque estés en la pestaña de Venta
+    setTimeout(() => {
+        if (typeof actualizarTablaTicket === 'function') {
             actualizarTablaTicket();
+            console.log("actualizarTablaTicket ejecutado correctamente");
+        } else {
+            console.error("¡ERROR! actualizarTablaTicket no está definida en este contexto");
         }
-    } catch (error) {
-        console.warn("Aviso en actualizarTablaTicket: ", error.message);
-        // Al atrapar el error aquí, evitamos que se congele el código
-    }
-    
-    // 3. Forzamos el cierre inmediato del modal de búsqueda
-    if (typeof cerrarModalBusqueda === "function") {
-        cerrarModalBusqueda();
-    } else {
-        // Alternativa directa si la función no responde: ocultamos el elemento por ID
-        const modalBusqueda = document.getElementById('modal-busqueda');
-        if (modalBusqueda) {
-            modalBusqueda.classList.add('hidden');
-        }
-    }
+    }, 50);
 }
 
 function quitarDelCarrito(index) {
