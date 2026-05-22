@@ -101,39 +101,64 @@ app.get('/api/clientes', async (req, res) => {
 // --- 5. RUTA DE VENTAS (Con actualización de Stock) ---
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
-    const nuevoIdVenta = `VTA-2026-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`;
-
-    // 1. Insertar la venta principal
-    const { error: errVenta } = await supabase.from('ventas').insert([{
-        id_venta: nuevoIdVenta,
-        precio_total,
-        curp_cliente,
-        curp_trabajador
-    }]);
-
-    if (errVenta) return res.status(400).json({ error: errVenta.message });
-
-    // 2. Actualizar Stock de cada producto (Lógica en Servidor)
+    
+    // Iniciamos un cliente de conexión de la pool para manejar la transacción de forma segura
+    const client = await pool.connect(); 
+    
     try {
-        for (const item of detalles) {
-            // Obtenemos el stock actual primero
-            const { data: prod } = await supabase
-                .from('producto')
-                .select('cant_exist')
-                .eq('id_producto', item.id)
-                .single();
+        // 1. INICIAR TRANSACCIÓN CON CONTROL DE AISLAMIENTO
+        await client.query('BEGIN');
 
-            if (prod) {
-                const nuevoStock = prod.cant_exist - item.cantidad;
-                await supabase
-                    .from('producto')
-                    .update({ cant_exist: nuevoStock })
-                    .eq('id_producto', item.id);
+        // 2. INSERTAR LA CABECERA DE LA VENTA
+        const queryVenta = `
+            INSERT INTO ventas (precio_total, curp_cliente, curp_trabajador, fecha) 
+            VALUES ($1, $2, $3, NOW()) RETURNING id_venta;
+        `;
+        const resVenta = await client.query(queryVenta, [precio_total, curp_cliente || null, curp_trabajador]);
+        const id_venta = resVenta.rows[0].id_venta;
+
+        // 3. RECORRER CADA ARTÍCULO EN EL DETALLE
+        for (const item of detalles) {
+            
+            // A. Verificar stock real directo en la BD antes de proceder (Prevención de condiciones de carrera)
+            const verificarStock = await client.query(
+                'SELECT cant_exist, nombre FROM productos WHERE id_producto = $1 FOR UPDATE', 
+                [item.id]
+            );
+            
+            const productoBD = verificarStock.rows[0];
+            if (!productoBD || productoBD.cant_exist < item.cantidad) {
+                // Forzamos el error para saltar directo al CATCH y cancelar todo con ROLLBACK
+                throw new Error(`Stock insuficiente para el artículo: ${productoBD ? productoBD.nombre : item.id}. Disponibles: ${productoBD ? productoBD.cant_exist : 0}`);
             }
+
+            // B. Insertar en tu tabla relacional de detalles de venta
+            const queryDetalle = `
+                INSERT INTO detalles_ventas (id_venta, id_producto, cantidad, precio_unitario) 
+                VALUES ($1, $2, $3, $4);
+            `;
+            await client.query(queryDetalle, [id_venta, item.id, item.cantidad, item.precio]);
+
+            // C. ¡AQUÍ ESTÁ EL TRUCO! DESCONTAR DE LAS EXISTENCIAS DE LA TABLA PRODUCTOS
+            const queryDescontarStock = `
+                UPDATE productos 
+                SET cant_exist = cant_exist - $1 
+                WHERE id_producto = $2;
+            `;
+            await client.query(queryDescontarStock, [item.cantidad, item.id]);
         }
-        res.json({ id_venta: nuevoIdVenta, status: "Venta y stock procesados" });
-    } catch (err) {
-        res.status(500).json({ error: "Venta registrada, pero falló el stock" });
+
+        // Si todo corrió bien sin excepciones, confirmamos los cambios de forma permanente
+        await client.query('COMMIT');
+        res.status(201).json({ success: true, id_venta });
+
+    } catch (error) {
+        // Si falló un solo artículo (ej. stock insuficiente), se cancela toda la operación completa en cascada
+        await client.query('ROLLBACK');
+        console.error("Transacción abortada debido a error:", error.message);
+        res.status(400).json({ error: error.message });
+    } finally {
+        client.release(); // Liberamos el hilo de conexión de la pool de PostgreSQL
     }
 });
 
