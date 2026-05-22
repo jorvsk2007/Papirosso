@@ -16,7 +16,7 @@ app.use(express.json()); // Recuerda que esta línea es obligatoria para leer el
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// --- 1. RUTA DE LOGIN (VERSIÓN A PRUEBA DE FALLOS) ---
+// --- 1. RUTA DE LOGIN (ACTUALIZADA PARA TRABAJADORES Y CLIENTES) ---
 app.post('/api/login', async (req, res) => {
     const { curp, password } = req.body;
 
@@ -25,42 +25,37 @@ app.post('/api/login', async (req, res) => {
     }
 
     try {
-        // 1. Consulta limpia: sin uniones (joins) que rompan la base de datos.
-        const { data: trabajadores, error } = await supabase
-            .from('trabajadores')
-            .select('*');
+        const curpLimpia = curp.trim().toUpperCase();
 
-        // Si la base de datos falla, ahora nos dirá exactamente por qué
-        if (error) {
-            console.error("Fallo de Supabase:", error.message);
-            return res.status(500).json({ error: `Error DB: ${error.message}` });
+        // 1. Intentar buscar en trabajadores
+        const { data: trabajadores } = await supabase.from('trabajadores').select('*');
+        let usuario = trabajadores ? trabajadores.find(t => t.curp && t.curp.trim().toUpperCase() === curpLimpia) : null;
+        let tipoUsuario = 'trabajador';
+
+        // 2. Si no es trabajador, buscar en cliente
+        if (!usuario) {
+            const { data: clientes } = await supabase.from('cliente').select('*');
+            usuario = clientes ? clientes.find(c => c.curp && c.curp.trim().toUpperCase() === curpLimpia) : null;
+            tipoUsuario = 'cliente';
         }
 
-        // 2. Buscamos limpiando los espacios invisibles
-        const curpLimpia = curp.trim().toUpperCase();
-        const trabajador = trabajadores.find(t => 
-            t.curp && t.curp.trim().toUpperCase() === curpLimpia
-        );
-
-        if (!trabajador) {
+        if (!usuario) {
             return res.status(401).json({ error: "La CURP no está registrada." });
         }
 
-        // 3. Validamos la contraseña (evitando errores si un usuario no tiene password aún)
-        if (!trabajador.password || trabajador.password.trim() !== password.trim()) {
+        if (!usuario.password || usuario.password.trim() !== password.trim()) {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
-        // 4. Éxito total. Mandamos nombre genérico por ahora para evitar el choque de tablas.
+        // 3. Éxito. Retornamos el rol adecuado ('cliente' o el rol del trabajador)
         return res.json({
-            curp: trabajador.curp.trim(),
-            rol: trabajador.rol,
-            sueldo: trabajador.sueldo,
-            persona: { nombre: "Equipo", apellidos: "Papelería" }
+            curp: usuario.curp.trim(),
+            rol: tipoUsuario === 'cliente' ? 'cliente' : usuario.rol,
+            persona: { nombre: "Usuario", apellidos: "Papirosso" }
         });
 
     } catch (err) {
-        console.error("Error de Node:", err);
+        console.error(err);
         return res.status(500).json({ error: `Error de servidor: ${err.message}` });
     }
 });
