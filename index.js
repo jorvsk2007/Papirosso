@@ -102,44 +102,59 @@ app.get('/api/clientes', async (req, res) => {
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
     
-    // Iniciamos un cliente de conexión de la pool para manejar la transacción de forma segura
+    // Validar de inmediato que el carrito no llegue vacío
+    if (!detalles || detalles.length === 0) {
+        return res.status(400).json({ error: "El carrito de ventas está completamente vacío." });
+    }
+
     const client = await pool.connect(); 
     
     try {
-        // 1. INICIAR TRANSACCIÓN CON CONTROL DE AISLAMIENTO
+        // Iniciamos la transacción SQL
         await client.query('BEGIN');
 
-        // 2. INSERTAR LA CABECERA DE LA VENTA
+        // 1. INSERTAR LA CABECERA DE LA VENTA
+        // Asegúrate de que los nombres de las columnas 'precio_total', 'curp_cliente', 'curp_trabajador' correspondan a tu tabla 'ventas'
         const queryVenta = `
             INSERT INTO ventas (precio_total, curp_cliente, curp_trabajador, fecha) 
             VALUES ($1, $2, $3, NOW()) RETURNING id_venta;
         `;
-        const resVenta = await client.query(queryVenta, [precio_total, curp_cliente || null, curp_trabajador]);
+        
+        // Si el cliente es "Público General", el frontend manda null o string vacío; lo guardamos como NULL en BD
+        const clienteId = (curp_cliente && curp_cliente !== 'null' && curp_cliente.trim() !== '') ? curp_cliente : null;
+        
+        const resVenta = await client.query(queryVenta, [precio_total, clienteId, curp_trabajador]);
         const id_venta = resVenta.rows[0].id_venta;
 
-        // 3. RECORRER CADA ARTÍCULO EN EL DETALLE
+        // 2. RECORRER CADA ARTÍCULO PARA VALIDAR, DISMINUIR STOCK E INSERTAR DETALLE
         for (const item of detalles) {
             
-            // A. Verificar stock real directo en la BD antes de proceder (Prevención de condiciones de carrera)
+            // Buscamos el producto directo en la base de datos usando FOR UPDATE para bloquear la fila provisionalmente
             const verificarStock = await client.query(
                 'SELECT cant_exist, nombre FROM productos WHERE id_producto = $1 FOR UPDATE', 
                 [item.id]
             );
             
             const productoBD = verificarStock.rows[0];
-            if (!productoBD || productoBD.cant_exist < item.cantidad) {
-                // Forzamos el error para saltar directo al CATCH y cancelar todo con ROLLBACK
-                throw new Error(`Stock insuficiente para el artículo: ${productoBD ? productoBD.nombre : item.id}. Disponibles: ${productoBD ? productoBD.cant_exist : 0}`);
+            
+            if (!productoBD) {
+                throw new Error(`El producto con código ${item.id} no existe en el catálogo.`);
             }
 
-            // B. Insertar en tu tabla relacional de detalles de venta
+            if (productoBD.cant_exist < item.cantidad) {
+                throw new Error(`Stock insuficiente para "${productoBD.nombre}". Solicitado: ${item.cantidad}, Disponible: ${productoBD.cant_exist}`);
+            }
+
+            // 3. INSERTAR EN DETALLES_VENTAS
+            // Revisa si tu tabla relacional se llama 'detalles_ventas' o 'detalle_venta'
             const queryDetalle = `
                 INSERT INTO detalles_ventas (id_venta, id_producto, cantidad, precio_unitario) 
                 VALUES ($1, $2, $3, $4);
             `;
+            // Mapeamos los datos que vienen del frontend (item.id, item.cantidad, item.precio)
             await client.query(queryDetalle, [id_venta, item.id, item.cantidad, item.precio]);
 
-            // C. ¡AQUÍ ESTÁ EL TRUCO! DESCONTAR DE LAS EXISTENCIAS DE LA TABLA PRODUCTOS
+            // 4. ACTUALIZAR DISMINUYENDO EL STOCK EN LA TABLA PRODUCTOS
             const queryDescontarStock = `
                 UPDATE productos 
                 SET cant_exist = cant_exist - $1 
@@ -148,17 +163,22 @@ app.post('/api/ventas', async (req, res) => {
             await client.query(queryDescontarStock, [item.cantidad, item.id]);
         }
 
-        // Si todo corrió bien sin excepciones, confirmamos los cambios de forma permanente
+        // Si todos los pasos se completaron con éxito, confirmamos los cambios de forma permanente
         await client.query('COMMIT');
-        res.status(201).json({ success: true, id_venta });
+        
+        // Enviamos SIEMPRE una respuesta JSON válida de éxito
+        return res.status(201).json({ success: true, id_venta: id_venta });
 
     } catch (error) {
-        // Si falló un solo artículo (ej. stock insuficiente), se cancela toda la operación completa en cascada
+        // En caso de que falle CUALQUIER inserción o validación, cancelamos todo el progreso para no corromper la BD
         await client.query('ROLLBACK');
-        console.error("Transacción abortada debido a error:", error.message);
-        res.status(400).json({ error: error.message });
+        console.error("❌ ERROR EN TRANSACCIÓN DE VENTA:", error.message);
+        
+        // ¡Crucial! Devolvemos un JSON con el error para que el frontend no reciba HTML y se rompa
+        return res.status(400).json({ error: error.message });
     } finally {
-        client.release(); // Liberamos el hilo de conexión de la pool de PostgreSQL
+        // Liberamos la conexión de vuelta al pool de PostgreSQL
+        client.release();
     }
 });
 
