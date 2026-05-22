@@ -267,7 +267,7 @@ async function irAProductos() {
         const respuesta = await fetch(`${urlBase}/productos`);
         const data = await respuesta.json();
 
-        // RESPALDO GLOBAL: Almacenamos el catálogo completo en memoria para traducir los IDs en el historial
+        // RESPALDO GLOBAL: Almacenamos el catálogo completo en memoria
         listaProductosGlobal = data || [];
 
         // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN
@@ -294,14 +294,21 @@ async function irAProductos() {
                 </tr>`).join('');
         }
 
-        // 2. SI ESTÁ EN LA TIENDA PÚBLICA
+        // 2. SI ESTÁ EN LA TIENDA PÚBLICA (Calcula descuento en tiempo real por el carrito)
         if (productGrid) {
             if (!data || data.length === 0) {
                 productGrid.innerHTML = '<p class="text-slate-400 text-center col-span-full">No hay productos disponibles por el momento.</p>';
                 return;
             }
             productGrid.innerHTML = data.map(p => {
-                const sinStock = p.cant_exist <= 0;
+                // Buscamos si el usuario ya tiene este producto en el carrito temporal
+                const itemEnCarrito = carrito.find(item => item.id === p.id_producto);
+                const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+                
+                // Restamos dinámicamente lo que está agarrando temporalmente
+                const stockDisponibleReal = p.cant_exist - cantidadEnCarrito;
+                const sinStock = stockDisponibleReal <= 0;
+
                 return `
                     <div class="product-card ${sinStock ? 'opacity-60' : ''}" style="background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-direction: column; display: flex; justify-content: space-between;">
                         <div>
@@ -311,7 +318,7 @@ async function irAProductos() {
                         </div>
                         <div style="margin-top: 12px;">
                             <p style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; color: ${sinStock ? '#ef4444' : '#16a34a'}">
-                                ${sinStock ? '❌ Agotado' : `📦 Stock: ${p.cant_exist} pzas`}
+                                ${sinStock ? '❌ Agotado en Tienda' : `📦 Disponible: ${stockDisponibleReal} pzas`}
                             </p>
                             <button onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, ${p.cant_exist})" ${sinStock ? 'disabled' : ''} class="btn-confirm" style="width: 100%; padding: 10px; font-size: 0.85rem; cursor: ${sinStock ? 'not-allowed' : 'pointer'}; background: ${sinStock ? '#cbd5e1' : ''}; color: ${sinStock ? '#64748b' : ''}; border: none; border-radius: 8px; font-weight: bold;">
                                 ${sinStock ? 'Sin existencias' : '🛒 Añadir al carrito'}
@@ -419,21 +426,22 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // Guardamos el stock maximo dentro del objeto del carrito para usarlo en los botones + y -
         carrito.push({ id, nombre, precio, cantidad: 1, stockMax: stockDisponible });
     }
 
-    // Validaciones de seguridad por si estas funciones no están declaradas en la plantilla actual
     if (typeof cerrarBuscador === "function") {
         cerrarBuscador();
     }
     
+    // Forzamos actualización de la vista del carrito
     if (typeof actualizarVistaTicket === "function") {
         actualizarVistaTicket();
     } else if (typeof actualizarInterfazCarritoPublico === "function") {
-        // Ejecuta la actualización de la barra lateral si estás en la tienda pública
         actualizarInterfazCarritoPublico();
     }
+
+    // ACTUALIZACIÓN AL VUELO: Re-renderiza las tarjetas restando lo que está en el carrito
+    irAProductos();
 }
 
 function quitarDelCarrito(index) {
