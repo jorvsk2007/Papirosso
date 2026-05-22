@@ -485,13 +485,14 @@ function actualizarInterfazCarritoPublico() {
     irAProductos();
 }
 
-function cambiarCantidadCarrito(id, cambio) {
+function cambiarCantidadCarrito(id, cambio, stockMaximo) {
     const index = carrito.findIndex(item => item.id === id);
     if (index === -1) return;
 
     if (cambio > 0) {
-        if (carrito[index].cantidad >= carrito[index].stockMax) {
-            alert(`No puedes agregar más unidades. El stock máximo disponible es de ${carrito[index].stockMax} pzas.`);
+        // Valida que la cantidad en el carrito no supere las existencias de la base de datos
+        if (carrito[index].cantidad >= stockMaximo) {
+            alert(`No puedes agregar más unidades. El stock máximo disponible es de ${stockMaximo} pzas.`);
             return;
         }
         carrito[index].cantidad++;
@@ -499,11 +500,12 @@ function cambiarCantidadCarrito(id, cambio) {
         if (carrito[index].cantidad > 1) {
             carrito[index].cantidad--;
         } else {
-            // Si el cliente baja la cantidad a 0, se remueve el producto del carrito por completo
+            // Si baja a menos de 1, se elimina del carrito por completo
             carrito.splice(index, 1);
         }
     }
-    // Redibuja el carrito y refresca el stock visible en las tarjetas de la tienda
+    
+    // Al ejecutarse esta línea, se actualiza el carrito y se llama en cascada a irAProductos()
     actualizarInterfazCarritoPublico();
 }
 
