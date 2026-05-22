@@ -413,8 +413,10 @@ async function guardarProductoBD() {
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
 // ==========================================
+// ==========================================
+// LÓGICA DEL CARRITO PÚBLICO (TIENDA)
+// ==========================================
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
-    // IMPORTANTE: Buscamos usando item.id para mantener tu estructura nativa
     const index = carrito.findIndex(item => item.id === id);
     if (index !== -1) {
         if (carrito[index].cantidad >= stockDisponible) {
@@ -427,8 +429,14 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // Guardamos tanto 'id' como 'stockMax' de forma unificada
-        carrito.push({ id, nombre, precio: parseFloat(precio), cantidad: 1, stockMax: stockDisponible });
+        // SOLUCIÓN AQUÍ: Guardamos explícitamente el stockMax en el objeto
+        carrito.push({ 
+            id: id, 
+            nombre: nombre, 
+            precio: parseFloat(precio), 
+            cantidad: 1, 
+            stockMax: parseInt(stockDisponible) 
+        });
     }
 
     if (typeof cerrarBuscador === "function") {
@@ -446,7 +454,6 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
-        // Si el carrito se vacía, forzamos el renderizado de las tarjetas para restaurar el stock original
         irAProductos();
         return;
     }
@@ -475,7 +482,7 @@ function actualizarInterfazCarritoPublico() {
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
 
-    // Sincroniza las tarjetas de la tienda inmediatamente
+    // Forzamos el redibujado dinámico de las tarjetas de productos
     irAProductos();
 }
 
