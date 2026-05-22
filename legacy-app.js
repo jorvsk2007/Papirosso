@@ -96,13 +96,18 @@ async function ejecutarLogin() {
         }
 
         usuarioActual = data;
-        if (errorMsg) errorMsg.classList.add('hidden');
-        
-        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
-        localStorage.setItem('usuario', JSON.stringify(data));
-        window.location.href = "panel.html";
-
-    } catch (e) {
+            if (errorMsg) errorMsg.classList.add('hidden');
+            
+            alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+            localStorage.setItem('usuario', JSON.stringify(data));
+            
+            // NUEVO: Redirección condicionada según el rol
+            if (data.rol.toLowerCase().trim() === 'cliente') {
+                window.location.href = "cliente-publico.html";
+            } else {
+                window.location.href = "panel.html";
+            }
+        catch (e) {
         console.error("Error de comunicación:", e);
         alert("Error de conexión con el servidor: " + e.message);
     }
@@ -723,3 +728,138 @@ async function guardarNuevoUsuario(event) {
         alert("No se pudo registrar: " + err.message);
     }
 }
+
+
+//=======No compras si no ha iniciado sesion=====//
+function verificarSesionPublica() {
+    const sesion = localStorage.getItem('usuario');
+    const loginLink = document.getElementById('nav-login-text');
+    const userDisplay = document.getElementById('nav-user-curp');
+    const btnSalir = document.getElementById('btn-cerrar-sesion-publico');
+    const checkoutBtn = document.getElementById('checkout-button');
+
+    if (sesion) {
+        const usuario = JSON.parse(sesion);
+        
+        if (loginLink) loginLink.classList.add('hidden');
+        if (userDisplay) {
+            userDisplay.innerText = `👤 ${usuario.curp}`;
+            userDisplay.classList.remove('hidden');
+        }
+        if (btnSalir) btnSalir.classList.remove('hidden');
+    }
+
+    if (checkoutBtn) {
+        checkoutBtn.onclick = function() {
+            const sesionActiva = localStorage.getItem('usuario');
+            if (!sesionActiva) {
+                alert("🚫 Acción denegada: Debes iniciar sesión con tu CURP para poder finalizar una compra.");
+                window.location.href = "login.html";
+            } else {
+                registrarVentaPublica(); 
+            }
+        };
+    }
+}
+
+
+async function registrarVentaPublica() {
+    if (carrito.length === 0) return alert("El carrito está vacío.");
+    const urlBase = obtenerUrlBaseAPI();
+    const sesion = localStorage.getItem('usuario');
+    if (!sesion) return;
+    
+    const usuarioCliente = JSON.parse(sesion);
+
+    try {
+        const totalTexto = document.getElementById('cart-total').innerText;
+        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
+        
+        const detallesFormateados = carrito.map(item => ({
+            id: item.id,
+            id_producto: item.id,
+            nombre: item.nombre,
+            precio: parseFloat(item.precio),
+            cantidad: parseInt(item.cantidad)
+        }));
+
+        const ventaData = {
+            precio_total: totalVenta,
+            curp_cliente: usuarioCliente.curp, 
+            curp_trabajador: null,             
+            detalles: detallesFormateados
+        };
+
+        const respuesta = await fetch(`${urlBase}/ventas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ventaData)
+        });
+
+        const resultado = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
+            
+
+            carrito = [];
+            
+
+            const cartItemsContainer = document.getElementById('cart-items');
+            if (cartItemsContainer) cartItemsContainer.innerHTML = "Tu carrito está vacío";
+            const cartTotalContainer = document.getElementById('cart-total');
+            if (cartTotalContainer) cartTotalContainer.innerText = "$0.00";
+            
+        } else {
+            throw new Error(resultado.error);
+        }
+    } catch (err) {
+        alert("No se pudo procesar la compra: " + err.message);
+    }
+}
+
+
+// ==========================================
+// 10. EASTER EGG - SANS (MORTADELA) CON MÚSICA
+// ==========================================
+
+// 1. Creamos el objeto de audio apuntando a una versión online segura de Megalovania
+const musicaSans = new Audio('https://ia801509.us.archive.org/24/items/Megalovania_201905/Megalovania.mp3');
+musicaSans.loop = true; // Para que se repita si se quedan mucho tiempo en el modal
+
+document.addEventListener('DOMContentLoaded', () => {
+    const buscadorPublico = document.getElementById('public-search');
+    const easterEggBtn = document.getElementById('easter-egg-trigger');
+    const modalSans = document.getElementById('easter-egg-modal');
+    const btnCerrarSans = document.getElementById('close-easter-egg');
+
+    if (buscadorPublico) {
+        buscadorPublico.addEventListener('input', (e) => {
+            const texto = e.target.value.toLowerCase().trim();
+            
+            if (texto === 'mortadela') {
+                if (easterEggBtn) easterEggBtn.classList.remove('hidden');
+                if (modalSans) modalSans.classList.remove('hidden');
+                
+                // 2. ¡QUE COMIENCE EL JUICIO! (Le damos play a la música)
+                musicaSans.play().catch(error => {
+                    // El navegador a veces bloquea el audio si el usuario no ha hecho clic antes
+                    console.log("Audio bloqueado temporalmente por el navegador:", error);
+                });
+
+            } else {
+                if (easterEggBtn) easterEggBtn.classList.add('hidden');
+            }
+        });
+    }
+
+    if (btnCerrarSans && modalSans) {
+        btnCerrarSans.addEventListener('click', () => {
+            modalSans.classList.add('hidden');
+            
+            // 3. Pausamos la música y la reiniciamos al segundo 0 cuando cierren el modal
+            musicaSans.pause();
+            musicaSans.currentTime = 0;
+        });
+    }
+});
