@@ -406,10 +406,8 @@ async function guardarProductoBD() {
 // ==========================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
-function añadirAlCarrito(id, nombre, precio, stockDisponible) {
-    // Buscamos estrictamente por item.id
-    const index = carrito.findIndex(item => item.id === id);
-    
+function añadirAlCarrito(idProducto, nombre, precio, stockDisponible) {
+    const index = carrito.findIndex(item => item.id_producto === idProducto);
     if (index !== -1) {
         if (carrito[index].cantidad >= stockDisponible) {
             alert(`No puedes agregar más unidades de "${nombre}". Stock máximo disponible: ${stockDisponible}`);
@@ -421,14 +419,7 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        // Construimos el objeto con propiedades explícitas sin usar nombres alternos
-        carrito.push({ 
-            id: id, 
-            nombre: nombre, 
-            precio: parseFloat(precio), 
-            cantidad: 1, 
-            stockMax: parseInt(stockDisponible) 
-        });
+        carrito.push({ id_producto: idProducto, nombre, precio: parseFloat(precio), cantidad: 1 });
     }
 
     if (typeof cerrarBuscador === "function") {
@@ -446,7 +437,6 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
-        irAProductos(); // Restaurar stock de las tarjetas de la tienda
         return;
     }
 
@@ -454,8 +444,6 @@ function actualizarInterfazCarritoPublico() {
     contenedor.innerHTML = carrito.map(item => {
         const subtotal = item.cantidad * item.precio;
         sumaTotal += subtotal;
-        
-        // CORRECCIÓN RADICAL: Asegurar que se inyecten item.id e item.stockMax correctos en el HTML
         return `
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
                 <div style="flex: 1; padding-right: 10px;">
@@ -463,9 +451,9 @@ function actualizarInterfazCarritoPublico() {
                     <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button onclick="cambiarCantidadCarrito('${item.id}', -1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">-</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
                     <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadCarrito('${item.id}', 1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">+</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
                 </div>
                 <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
                     $${subtotal.toFixed(2)}
@@ -475,20 +463,13 @@ function actualizarInterfazCarritoPublico() {
     }).join('');
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
-
-    // Forzar el recálculo y descuento visual de las tarjetas del catálogo
-    irAProductos();
 }
 
-function cambiarCantidadCarrito(id, cambio, stockMaximo) {
-    const index = carrito.findIndex(item => item.id === id);
+function cambiarCantidadCarrito(idProducto, cambio) {
+    const index = carrito.findIndex(item => item.id_producto === idProducto);
     if (index === -1) return;
 
     if (cambio > 0) {
-        if (carrito[index].cantidad >= stockMaximo) {
-            alert(`No puedes agregar más unidades. El stock máximo disponible es de ${stockMaximo} pzas.`);
-            return;
-        }
         carrito[index].cantidad++;
     } else {
         if (carrito[index].cantidad > 1) {
