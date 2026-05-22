@@ -93,7 +93,7 @@ app.post('/api/productos', async (req, res) => {
 
 // --- 4. RUTA DE CLIENTES ---
 app.get('/api/clientes', async (req, res) => {
-    const { data, error } = await supabase.from('cliente').select('curp,password,  persona(nombre, apellidos)');
+    const { data, error } = await supabase.from('cliente').select('curp, password, persona(nombre, apellidos)');
     if (error) return res.status(400).json(error);
     res.json(data);
 });
