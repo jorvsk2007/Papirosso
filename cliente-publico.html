@@ -12,6 +12,7 @@
         <a class="brand" href="index.html">Papirosso</a>
         <nav class="store-menu">
             <a href="login.html" id="nav-login-text">Iniciar Sesión</a>
+            <button id="btn-mis-compras" class="hidden text-slate-700 hover:text-blue-600 font-semibold text-sm mx-2 transition" onclick="verMisCompras()">📋 Mis Compras</button>
             <span id="nav-user-curp" class="user-curp-display hidden" style="color: var(--primary); font-weight: 800; font-family: 'Inter', sans-serif;"></span>
             <button id="btn-cerrar-sesion-publico" class="hidden" onclick="cerrarSesion()" style="background: none; border: none; color: red; cursor: pointer; font-weight: 600; margin-left: 10px;">🚪 Salir</button>
             <a href="index.html">Inicio</a>
@@ -36,6 +37,60 @@
         </section>
 
         <section class="product-grid" id="product-grid"></section>
+        <section id="compras-cliente-section" class="hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-sm my-6 max-w-4xl mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-extrabold tracking-tight text-slate-850">📋 Tus Compras Recientes</h2>
+                <button onclick="regresarATiendaPublica()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-xl transition">
+                    ⬅ Volver a la Tienda
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-4">Folio Venta</th>
+                            <th class="py-3 px-4">Fecha y Hora</th>
+                            <th class="py-3 px-4">Total Pagado</th>
+                            <th class="py-3 px-4 text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compras-cliente-body" class="divide-y divide-slate-100 text-slate-700">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div id="modal-detalle-compra" class="modal-overlay hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+                <div class="flex justify-between items-start border-b border-slate-100 pb-3 mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900" id="modal-detalle-folio">Detalle de Venta</h3>
+                        <p class="text-xs text-slate-400 mt-0.5" id="modal-detalle-fecha">Fecha: --</p>
+                    </div>
+                    <button onclick="cerrarModalDetalleCompra()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✖</button>
+                </div>
+        
+                <div class="my-4">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+                            <tr>
+                                <th class="p-2">Producto</th>
+                                <th class="p-2 text-center">Cant.</th>
+                                <th class="p-2">Precio U.</th>
+                                <th class="p-2 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-detalle-productos-body" class="divide-y divide-slate-100 text-slate-700">
+                            </tbody>
+                    </table>
+                </div>
+
+                <div class="border-t border-slate-100 pt-3 mt-4 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total de la Compra:</span>
+                    <span class="text-xl font-black text-emerald-500" id="modal-detalle-total">$0.00</span>
+                </div>
+            </div>
+        </div>
 
         <aside class="cart-panel">
             <h2>Tu carrito</h2>
