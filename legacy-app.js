@@ -54,7 +54,7 @@ function cerrarBuscador() {
 }
 
 // ==========================================
-// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) - CORREGIDA
+// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) - LIMPIA Y CORREGIDA
 // ==========================================
 async function ejecutarLogin() {
     const curpInput = document.getElementById('login-curp');
@@ -108,7 +108,7 @@ async function ejecutarLogin() {
             window.location.href = "panel.html";
         }
 
-    } catch (e) { //  Llave de cierre del "try" reincorporada correctamente
+    } catch (e) { 
         console.error("Error de comunicación:", e);
         alert("Error de conexión con el servidor: " + e.message);
     }
