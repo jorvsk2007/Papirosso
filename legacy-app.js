@@ -407,40 +407,42 @@ async function guardarProductoBD() {
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (TICKET)
 // ==========================================
 
-function añadirAlCarrito(idProducto, nombre, precio) {
-    console.log("Intentando agregar:", idProducto);
-
-    // 1. Lógica del carrito
-    const index = carrito.findIndex(item => item.id_producto === idProducto);
+function añadirAlCarrito(id, nombre, precio, stockDisponible) {
+    // 1. Usamos id_producto, que es el campo real de tu BD
+    const index = carrito.findIndex(item => item.id_producto === id);
     
     if (index !== -1) {
+        // Validamos stock si existe la variable
+        if (stockDisponible !== undefined && carrito[index].cantidad >= stockDisponible) {
+            alert("No hay suficiente stock.");
+            return;
+        }
         carrito[index].cantidad++;
     } else {
+        // 2. IMPORTANTE: Guardamos el ID correcto aquí
         carrito.push({ 
-            id_producto: idProducto, 
+            id_producto: id, 
             nombre: nombre, 
             precio: parseFloat(precio), 
-            cantidad: 1 
+            cantidad: 1, 
+            stockMax: stockDisponible 
         });
     }
 
-    // 2. FORZAR CIERRE DEL MODAL
-    const modal = document.getElementById('modal-busqueda');
-    if (modal) {
-        modal.classList.add('hidden');
+    // 3. Ejecución segura de interfaces
+    // Si estamos en el Admin (Caja), intentamos actualizar el ticket
+    if (typeof cerrarBuscador === "function") {
+        cerrarBuscador();
     }
-
-    // 3. LA CLAVE: Llamar a la función que pinta el ticket
-    // Usamos un pequeño retraso (setTimeout) para asegurar que el DOM 
-    // esté listo para recibir los cambios aunque estés en la pestaña de Venta
-    setTimeout(() => {
-        if (typeof actualizarTablaTicket === 'function') {
-            actualizarTablaTicket();
-            console.log("actualizarTablaTicket ejecutado correctamente");
-        } else {
-            console.error("¡ERROR! actualizarTablaTicket no está definida en este contexto");
-        }
-    }, 50);
+    
+    if (typeof actualizarVistaTicket === "function") {
+        actualizarVistaTicket();
+    } 
+    
+    // Si estamos en Público, actualizamos la interfaz de tienda
+    if (typeof actualizarInterfazCarritoPublico === "function") {
+        actualizarInterfazCarritoPublico();
+    }
 }
 
 function quitarDelCarrito(index) {
