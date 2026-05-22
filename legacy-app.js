@@ -444,6 +444,67 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
     irAProductos();
 }
 
+function actualizarInterfazCarritoPublico() {
+    const contenedor = document.getElementById('cart-items');
+    const totalContenedor = document.getElementById('cart-total');
+    if (!contenedor) return;
+
+    if (carrito.length === 0) {
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
+        if (totalContenedor) totalContenedor.innerText = '$0.00';
+        // Si el carrito se vacía, actualizamos tarjetas para restaurar stock original
+        irAProductos();
+        return;
+    }
+
+    let sumaTotal = 0;
+    contenedor.innerHTML = carrito.map(item => {
+        const subtotal = item.cantidad * item.precio;
+        sumaTotal += subtotal;
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
+                <div style="flex: 1; padding-right: 10px;">
+                    <h4 style="margin: 0; font-weight: 600; color: var(--text-main);">${item.nombre}</h4>
+                    <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button onclick="cambiarCantidadCarrito('${item.id}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
+                    <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
+                </div>
+                <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
+                    $${subtotal.toFixed(2)}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
+
+    // RE-RENDERIZADO AUTOMÁTICO: Sincroniza las tarjetas con los cambios de cantidades del carrito
+    irAProductos();
+}
+
+function cambiarCantidadCarrito(id, cambio) {
+    const index = carrito.findIndex(item => item.id === id);
+    if (index === -1) return;
+
+    if (cambio > 0) {
+        if (carrito[index].cantidad >= carrito[index].stockMax) {
+            alert(`No puedes agregar más unidades. El stock máximo disponible es de ${carrito[index].stockMax} pzas.`);
+            return;
+        }
+        carrito[index].cantidad++;
+    } else {
+        if (carrito[index].cantidad > 1) {
+            carrito[index].cantidad--;
+        } else {
+            carrito.splice(index, 1);
+        }
+    }
+    actualizarInterfazCarritoPublico();
+}
+
 function quitarDelCarrito(index) {
     carrito.splice(index, 1);
     actualizarVistaTicket();
@@ -1003,6 +1064,26 @@ function actualizarInterfazCarritoPublico() {
 
     // RE-RENDERIZADO AUTOMÁTICO: Sincroniza las tarjetas con los cambios de cantidades del carrito
     irAProductos();
+}
+
+function cambiarCantidadCarrito(id, cambio) {
+    const index = carrito.findIndex(item => item.id === id);
+    if (index === -1) return;
+
+    if (cambio > 0) {
+        if (carrito[index].cantidad >= carrito[index].stockMax) {
+            alert(`No puedes agregar más unidades. El stock máximo disponible es de ${carrito[index].stockMax} pzas.`);
+            return;
+        }
+        carrito[index].cantidad++;
+    } else {
+        if (carrito[index].cantidad > 1) {
+            carrito[index].cantidad--;
+        } else {
+            carrito.splice(index, 1);
+        }
+    }
+    actualizarInterfazCarritoPublico();
 }
 
 // 3. Quitar unidades o eliminar un producto del carrito
