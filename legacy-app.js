@@ -814,8 +814,8 @@ async function registrarVentaPublica() {
         const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
         
         const detallesFormateados = carrito.map(item => ({
-            id: item.id,
-            id_producto: item.id,
+            id: item.id_producto,          
+            id_producto: item.id_producto, 
             nombre: item.nombre,
             precio: parseFloat(item.precio),
             cantidad: parseInt(item.cantidad)
