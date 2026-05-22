@@ -1035,7 +1035,7 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
-        // Si el carrito se vacía, actualizamos tarjetas para restaurar stock original
+        // Si el carrito queda vacío, refresca el catálogo para devolver los valores originales
         irAProductos();
         return;
     }
@@ -1051,9 +1051,9 @@ function actualizarInterfazCarritoPublico() {
                     <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button onclick="cambiarCantidadCarrito('${item.id}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', -1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
                     <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadCarrito('${item.id}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', 1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
                 </div>
                 <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
                     $${subtotal.toFixed(2)}
@@ -1064,7 +1064,7 @@ function actualizarInterfazCarritoPublico() {
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
 
-    // RE-RENDERIZADO AUTOMÁTICO: Sincroniza las tarjetas con los cambios de cantidades del carrito
+    // SINCRONIZACIÓN: Redibuja el stock en las tarjetas restando lo que está apartado en el carrito
     irAProductos();
 }
 
