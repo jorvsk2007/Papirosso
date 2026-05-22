@@ -622,6 +622,9 @@ async function cargarClientesPanel() {
     try {
         const respuesta = await fetch(`${urlBase}/clientes`);
         clientesLocalesPanel = await respuesta.json();
+
+        console.log("Datos de clientes recibidos de la BD:", clientesLocalesPanel);
+        
         renderizarClientesEnPanel(clientesLocalesPanel);
     } catch (e) {
         console.error("Error cargando clientes del panel", e);
