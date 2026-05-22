@@ -975,40 +975,44 @@ function añadirAlCarrito(id_producto, nombre, precio, stockMaximo) {
 
 // 2. Función para redibujar la barra lateral del carrito
 function actualizarInterfazCarritoPublico() {
-    const cartItemsContainer = document.getElementById('cart-items');
-    const cartTotalContainer = document.getElementById('cart-total');
-
-    if (!cartItemsContainer) return; // Protección si no estamos en la vista cliente
+    const contenedor = document.getElementById('cart-items');
+    const totalContenedor = document.getElementById('cart-total');
+    if (!contenedor) return;
 
     if (carrito.length === 0) {
-        cartItemsContainer.innerHTML = 'Tu carrito está vacío';
-        if (cartTotalContainer) cartTotalContainer.textContent = '$0.00';
+        contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
+        if (totalContenedor) totalContenedor.innerText = '$0.00';
+        // Si el carrito se vacía, actualizamos tarjetas para restaurar stock original
+        irAProductos();
         return;
     }
 
-    let totalAcumulado = 0;
-
-    cartItemsContainer.innerHTML = carrito.map((item, index) => {
-        const subtotal = item.precio * item.cantidad;
-        totalAcumulado += subtotal;
-
+    let sumaTotal = 0;
+    contenedor.innerHTML = carrito.map(item => {
+        const subtotal = item.cantidad * item.precio;
+        sumaTotal += subtotal;
         return `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-b: 1px solid #f1f5f9; font-size: 0.9rem;">
-            <div style="flex: 1; padding-right: 8px;">
-                <p style="font-weight: 600; margin: 0; color: #1e293b;">${item.nombre}</p>
-                <p style="font-size: 0.75rem; color: #64748b; margin: 2px 0;">$${item.precio.toFixed(2)} c/u</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;">
+                <div style="flex: 1; padding-right: 10px;">
+                    <h4 style="margin: 0; font-weight: 600; color: var(--text-main);">${item.nombre}</h4>
+                    <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button onclick="cambiarCantidadCarrito('${item.id}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
+                    <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
+                </div>
+                <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
+                    $${subtotal.toFixed(2)}
+                </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: bold; background: #f1f5f9; padding: 4px 10px; border-radius: 6px; color: #334155;">x${item.cantidad}</span>
-                <span style="font-weight: 700; color: #0f172a; min-width: 60px; text-align: right;">$${subtotal.toFixed(2)}</span>
-                <button onclick="eliminarDelCarritoPublico(${index})" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 0 4px;">✕</button>
-            </div>
-        </div>`;
+        `;
     }).join('');
 
-    if (cartTotalContainer) {
-        cartTotalContainer.textContent = `$${totalAcumulado.toFixed(2)}`;
-    }
+    if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
+
+    // RE-RENDERIZADO AUTOMÁTICO: Sincroniza las tarjetas con los cambios de cantidades del carrito
+    irAProductos();
 }
 
 // 3. Quitar unidades o eliminar un producto del carrito
