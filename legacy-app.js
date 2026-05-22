@@ -54,7 +54,7 @@ function cerrarBuscador() {
 }
 
 // ==========================================
-// 3. LÓGICA DE AUTENTICACIÓN (LOGIN)
+// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) - CORREGIDA
 // ==========================================
 async function ejecutarLogin() {
     const curpInput = document.getElementById('login-curp');
@@ -96,26 +96,22 @@ async function ejecutarLogin() {
         }
 
         usuarioActual = data;
-            if (errorMsg) errorMsg.classList.add('hidden');
-            
-            alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
-            localStorage.setItem('usuario', JSON.stringify(data));
+        if (errorMsg) errorMsg.classList.add('hidden');
         
-            if (data.rol.toLowerCase().trim() === 'cliente') {
-                window.location.href = "cliente-publico.html";
-            } else {
-                window.location.href = "panel.html";
-            }
-            catch (e) {
-                console.error("Error de comunicación:", e);
-                alert("Error de conexión con el servidor: " + e.message);
-            }
-}
+        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+        localStorage.setItem('usuario', JSON.stringify(data));
+        
+        // Redirección condicionada según el rol
+        if (data.rol.toLowerCase().trim() === 'cliente') {
+            window.location.href = "cliente-publico.html";
+        } else {
+            window.location.href = "panel.html";
+        }
 
-function cerrarSesion() {
-    usuarioActual = null;
-    localStorage.removeItem('usuario');
-    window.location.href = "login.html";
+    } catch (e) { //  Llave de cierre del "try" reincorporada correctamente
+        console.error("Error de comunicación:", e);
+        alert("Error de conexión con el servidor: " + e.message);
+    }
 }
 
 // ==========================================
