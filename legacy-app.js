@@ -414,6 +414,7 @@ async function guardarProductoBD() {
 // ==========================================
 // ==========================================
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
+    // IMPORTANTE: Buscamos usando item.id para mantener tu estructura nativa
     const index = carrito.findIndex(item => item.id === id);
     if (index !== -1) {
         if (carrito[index].cantidad >= stockDisponible) {
@@ -426,22 +427,15 @@ function añadirAlCarrito(id, nombre, precio, stockDisponible) {
             alert(`"${nombre}" se encuentra totalmente agotado.`);
             return;
         }
-        carrito.push({ id, nombre, precio, cantidad: 1, stockMax: stockDisponible });
+        // Guardamos tanto 'id' como 'stockMax' de forma unificada
+        carrito.push({ id, nombre, precio: parseFloat(precio), cantidad: 1, stockMax: stockDisponible });
     }
 
     if (typeof cerrarBuscador === "function") {
         cerrarBuscador();
     }
     
-    // Forzamos actualización de la vista del carrito
-    if (typeof actualizarVistaTicket === "function") {
-        actualizarVistaTicket();
-    } else if (typeof actualizarInterfazCarritoPublico === "function") {
-        actualizarInterfazCarritoPublico();
-    }
-
-    // ACTUALIZACIÓN AL VUELO: Re-renderiza las tarjetas restando lo que está en el carrito
-    irAProductos();
+    actualizarInterfazCarritoPublico();
 }
 
 function actualizarInterfazCarritoPublico() {
@@ -452,7 +446,7 @@ function actualizarInterfazCarritoPublico() {
     if (carrito.length === 0) {
         contenedor.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 20px 0;">Tu carrito está vacío</p>';
         if (totalContenedor) totalContenedor.innerText = '$0.00';
-        // Si el carrito se vacía, actualizamos tarjetas para restaurar stock original
+        // Si el carrito se vacía, forzamos el renderizado de las tarjetas para restaurar el stock original
         irAProductos();
         return;
     }
@@ -468,9 +462,9 @@ function actualizarInterfazCarritoPublico() {
                     <small style="color: var(--accent); font-weight: 700;">$${item.precio.toFixed(2)} c/u</small>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button onclick="cambiarCantidadCarrito('${item.id}', -1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">-</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', -1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">-</button>
                     <span style="font-weight: 700; min-width: 16px; text-align: center;">${item.cantidad}</span>
-                    <button onclick="cambiarCantidadCarrito('${item.id}', 1)" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold;">+</button>
+                    <button onclick="cambiarCantidadCarrito('${item.id}', 1, ${item.stockMax})" style="width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border); background: #f8fafc; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;">+</button>
                 </div>
                 <div style="min-width: 70px; text-align: right; font-weight: 700; color: var(--text-main);">
                     $${subtotal.toFixed(2)}
@@ -481,7 +475,7 @@ function actualizarInterfazCarritoPublico() {
 
     if (totalContenedor) totalContenedor.innerText = `$${sumaTotal.toFixed(2)}`;
 
-    // RE-RENDERIZADO AUTOMÁTICO: Sincroniza las tarjetas con los cambios de cantidades del carrito
+    // Sincroniza las tarjetas de la tienda inmediatamente
     irAProductos();
 }
 
@@ -490,7 +484,6 @@ function cambiarCantidadCarrito(id, cambio, stockMaximo) {
     if (index === -1) return;
 
     if (cambio > 0) {
-        // Valida que la cantidad en el carrito no supere las existencias de la base de datos
         if (carrito[index].cantidad >= stockMaximo) {
             alert(`No puedes agregar más unidades. El stock máximo disponible es de ${stockMaximo} pzas.`);
             return;
@@ -500,12 +493,14 @@ function cambiarCantidadCarrito(id, cambio, stockMaximo) {
         if (carrito[index].cantidad > 1) {
             carrito[index].cantidad--;
         } else {
-            // Si baja a menos de 1, se elimina del carrito por completo
             carrito.splice(index, 1);
         }
     }
-    
-    // Al ejecutarse esta línea, se actualiza el carrito y se llama en cascada a irAProductos()
+    actualizarInterfazCarritoPublico();
+}
+
+function limpiarCarritoCliente() {
+    carrito = [];
     actualizarInterfazCarritoPublico();
 }
 
