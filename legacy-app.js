@@ -824,7 +824,7 @@ async function registrarVentaPublica() {
 // ==========================================
 
 // 1. Creamos el objeto de audio apuntando a una versión online segura de Megalovania
-const musicaSans = new Audio('https://archive.org/details/gs_qumu-megalovania-from-undertale-cover-version');
+const musicaSans = new Audio('./megalovania.mp3');
 musicaSans.loop = true; // Para que se repita si se quedan mucho tiempo en el modal
 
 document.addEventListener('DOMContentLoaded', () => {
