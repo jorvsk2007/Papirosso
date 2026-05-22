@@ -100,17 +100,16 @@ async function ejecutarLogin() {
             
             alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
             localStorage.setItem('usuario', JSON.stringify(data));
-            
-            // NUEVO: Redirección condicionada según el rol
+        
             if (data.rol.toLowerCase().trim() === 'cliente') {
                 window.location.href = "cliente-publico.html";
             } else {
                 window.location.href = "panel.html";
             }
-        catch (e) {
-        console.error("Error de comunicación:", e);
-        alert("Error de conexión con el servidor: " + e.message);
-    }
+            catch (e) {
+                console.error("Error de comunicación:", e);
+                alert("Error de conexión con el servidor: " + e.message);
+            }
 }
 
 function cerrarSesion() {
@@ -824,7 +823,7 @@ async function registrarVentaPublica() {
 // ==========================================
 
 // 1. Creamos el objeto de audio apuntando a una versión online segura de Megalovania
-const musicaSans = new Audio('https://ia801509.us.archive.org/24/items/Megalovania_201905/Megalovania.mp3');
+const musicaSans = new Audio('https://archive.org/download/gs_qumu-megalovania-from-undertale-cover-version/Qumu%20-%20Megalovania%20%28from%20Undertale%20%5BCover%20Version%5D%29.mp3');
 musicaSans.loop = true; // Para que se repita si se quedan mucho tiempo en el modal
 
 document.addEventListener('DOMContentLoaded', () => {
