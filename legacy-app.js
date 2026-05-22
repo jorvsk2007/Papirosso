@@ -1029,3 +1029,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function verificarSesionPublica() {
+    const sesion = localStorage.getItem('usuario');
+    const btnMisCompras = document.getElementById('btn-mis-compras');
+    
+    if (sesion) {
+        const usuario = JSON.parse(sesion);
+        usuarioActual = usuario; // Mapear al estado global
+        
+        if (btnMisCompras) btnMisCompras.classList.remove('hidden');
+        // ... (el resto del código que ya tienes para mostrar el CURP y ocultar el login)
+    } else {
+        if (btnMisCompras) btnMisCompras.classList.add('hidden');
+    }
+}
