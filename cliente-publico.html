@@ -23,7 +23,7 @@
         <section class="store-hero">
             <div>
                 <span class="eyebrow">Gracias por su preferencia</span>
-                <h1>Compras</h1>
+                <h1>Compra con actitud de marketplace</h1>
                 <div class="hero-badges">
                     <span class="store-badge">Cómodo</span>
                     <span class="store-badge">Pagos seguros</span>
@@ -35,23 +35,89 @@
             </div>
         </section>
 
-        <section class="product-grid" id="product-grid"></section>
+        <!-- ============================================ -->
+        <!-- GRID DE PRODUCTOS + CARRITO LADO A LADO     -->
+        <!-- ============================================ -->
+        <div style="display: flex; gap: 24px; align-items: flex-start;">
 
-        <aside class="cart-panel">
-            <h2>Tu carrito</h2>
-            <div id="cart-items">Tu carrito está vacío</div>
-            <div class="cart-total">Total: <strong id="cart-total">$0.00</strong></div>
-            <button class="btn-confirm" id="checkout-button">Finalizar Compra</button>
-        </aside>
+            <!-- CATÁLOGO DE PRODUCTOS -->
+            <div style="flex: 1; min-width: 0;">
+                <div style="background: white; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden;">
+                    <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; background: #f8fafc;">
+                        <h2 style="margin:0; font-size: 1rem; font-weight: 800; color: #1e293b;">📦 Catálogo de Productos</h2>
+                        <p style="margin:4px 0 0; font-size: 0.78rem; color: #64748b;">Haz clic en <strong>Añadir</strong> para agregar al carrito</p>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width:100%; border-collapse: collapse; text-align: left; font-size: 0.875rem;">
+                            <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 700;">
+                                <tr>
+                                    <th style="padding: 12px 20px;">Código</th>
+                                    <th style="padding: 12px 20px;">Descripción</th>
+                                    <th style="padding: 12px 20px;">Precio</th>
+                                    <th style="padding: 12px 20px;">Stock</th>
+                                    <th style="padding: 12px 20px;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogo-tabla-body" style="color: #334155;">
+                                <tr>
+                                    <td colspan="5" style="padding: 32px; text-align: center; color: #94a3b8;">Cargando productos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL DEL CARRITO -->
+            <div style="width: 360px; flex-shrink: 0; position: sticky; top: 90px;">
+                <div style="background: #0f172a; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.18);">
+                    
+                    <!-- Header carrito -->
+                    <div style="padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                        <h2 style="margin:0; color: white; font-size: 1rem; font-weight: 800;">🛒 Tu Carrito</h2>
+                        <p style="margin: 4px 0 0; font-size: 0.75rem; color: #64748b;" id="carrito-subtitulo">0 artículos agregados</p>
+                    </div>
+
+                    <!-- Items del carrito -->
+                    <div id="carrito-items" style="padding: 16px 24px; min-height: 120px; max-height: 340px; overflow-y: auto;">
+                        <p style="color: #475569; font-size: 0.85rem; text-align: center; margin: 24px 0;">Tu carrito está vacío</p>
+                    </div>
+
+                    <!-- Total y botón -->
+                    <div style="padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <span style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">TOTAL A PAGAR</span>
+                            <span id="carrito-total" style="color: #10b981; font-size: 1.5rem; font-weight: 800;">$0.00</span>
+                        </div>
+                        <button onclick="finalizarCompraCliente()" id="btn-finalizar-compra"
+                            style="width: 100%; background: #10b981; color: white; border: none; border-radius: 12px; padding: 14px; font-size: 0.9rem; font-weight: 800; cursor: pointer; transition: background 0.2s; letter-spacing: 0.02em;"
+                            onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+                            🧾 CONFIRMAR COMPRA
+                        </button>
+                        <button onclick="limpiarCarritoCliente()"
+                            style="width: 100%; background: transparent; color: #475569; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-top: 8px; transition: color 0.2s;"
+                            onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#475569'">
+                            🗑 Vaciar carrito
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sección grid original (se puede mantener oculta o eliminar) -->
+        <section class="product-grid" id="product-grid" style="display:none;"></section>
+
     </main>
 
+    <!-- MODAL EASTER EGG SANS -->
     <div id="easter-egg-modal" class="modal-overlay hidden">
         <div class="modal-card easter-card">
             <div class="modal-header">
                 <h2>Sans dice...</h2>
             </div>
             <div class="modal-body">
-                <p><strong>“hey. it’s a beautiful day outside. birds are singing, flowers are blooming... on days like these, kids like you... should be buying stationery.”</strong></p>
+                <p><strong>"hey. it's a beautiful day outside. birds are singing, flowers are blooming... on days like these, kids like you... should be buying stationery."</strong></p>
             </div>
             <div class="modal-footer">
                 <button class="btn-cancel" id="close-easter-egg">Cerrar</button>
@@ -59,6 +125,246 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIRMACIÓN DE COMPRA -->
+    <div id="modal-compra-exitosa" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter: blur(4px); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:white; border-radius: 20px; padding: 40px; max-width: 420px; width: 90%; text-align:center; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <div style="font-size: 3rem; margin-bottom: 16px;">✅</div>
+            <h2 style="font-size: 1.4rem; font-weight: 800; color: #0f172a; margin: 0 0 8px;">¡Compra registrada!</h2>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0 0 8px;">Tu pedido ha sido procesado exitosamente.</p>
+            <p id="modal-folio" style="color: #10b981; font-weight: 800; font-size: 1rem; margin: 0 0 24px;"></p>
+            <button onclick="cerrarModalCompra()"
+                style="background: #0f172a; color: white; border: none; border-radius: 12px; padding: 12px 32px; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+                Continuar comprando
+            </button>
+        </div>
+    </div>
+
     <script src="legacy-app.js"></script>
+
+    <script>
+    // ============================================
+    // LÓGICA DEL CATÁLOGO Y CARRITO CLIENTE
+    // ============================================
+
+    // URL de tu backend (igual que en legacy-app.js)
+    const API_BASE = 'https://papirosso-api.onrender.com'; // <-- Cámbiala si es diferente
+
+    let catalogoProductos = [];
+    let carritoCliente = []; // [{ id_producto, nombre, precio, cantidad }]
+
+    // --- CARGAR CATÁLOGO AL ENTRAR ---
+    async function cargarCatalogoPublico() {
+        try {
+            const res = await fetch(`${API_BASE}/api/productos`);
+            const productos = await res.json();
+            catalogoProductos = productos;
+            renderizarCatalogo(productos);
+        } catch (e) {
+            document.getElementById('catalogo-tabla-body').innerHTML =
+                `<tr><td colspan="5" style="padding:32px; text-align:center; color:#ef4444;">Error al cargar productos. Intenta de nuevo.</td></tr>`;
+        }
+    }
+
+    // --- RENDERIZAR TABLA DE CATÁLOGO ---
+    function renderizarCatalogo(productos) {
+        const tbody = document.getElementById('catalogo-tabla-body');
+        if (!productos || productos.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="padding:32px; text-align:center; color:#94a3b8;">No hay productos disponibles.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = productos.map(p => {
+            const sinStock = p.cant_exist <= 0;
+            return `
+            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" 
+                onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <td style="padding: 14px 20px; font-size: 0.78rem; color: #94a3b8; font-weight: 700; font-family: monospace;">${p.id_producto}</td>
+                <td style="padding: 14px 20px; font-weight: 600; color: #1e293b;">${p.nombre}</td>
+                <td style="padding: 14px 20px; font-weight: 700; color: #0f172a;">$${parseFloat(p.precio).toFixed(2)}</td>
+                <td style="padding: 14px 20px;">
+                    <span style="background: ${sinStock ? '#fef2f2' : '#f0fdf4'}; color: ${sinStock ? '#ef4444' : '#16a34a'}; font-weight: 800; font-size: 0.8rem; padding: 3px 10px; border-radius: 999px;">
+                        ${sinStock ? 'Agotado' : p.cant_exist}
+                    </span>
+                </td>
+                <td style="padding: 14px 20px;">
+                    <button onclick="agregarAlCarritoCliente('${p.id_producto}', '${p.nombre.replace(/'/g,"\\'")}', ${p.precio}, ${p.cant_exist})"
+                        ${sinStock ? 'disabled' : ''}
+                        style="background: ${sinStock ? '#e2e8f0' : '#10b981'}; color: ${sinStock ? '#94a3b8' : 'white'}; border: none; border-radius: 8px; padding: 7px 18px; font-size: 0.8rem; font-weight: 700; cursor: ${sinStock ? 'not-allowed' : 'pointer'}; transition: background 0.2s;"
+                        ${!sinStock ? `onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'"` : ''}>
+                        ${sinStock ? 'Sin stock' : '+ Añadir'}
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // --- FILTRAR CATÁLOGO CON BÚSQUEDA ---
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarCatalogoPublico();
+
+        const buscador = document.getElementById('public-search');
+        if (buscador) {
+            buscador.addEventListener('input', (e) => {
+                const texto = e.target.value.toLowerCase().trim();
+
+                // Easter egg
+                if (texto === 'mortadela') {
+                    const eggBtn = document.getElementById('easter-egg-trigger');
+                    const eggModal = document.getElementById('easter-egg-modal');
+                    if (eggBtn) eggBtn.classList.remove('hidden');
+                    if (eggModal) eggModal.classList.remove('hidden');
+                }
+
+                // Filtrar productos
+                const filtrados = catalogoProductos.filter(p =>
+                    p.nombre.toLowerCase().includes(texto) ||
+                    p.id_producto.toLowerCase().includes(texto)
+                );
+                renderizarCatalogo(filtrados);
+            });
+        }
+    });
+
+    // --- AGREGAR AL CARRITO ---
+    function agregarAlCarritoCliente(id, nombre, precio, stock) {
+        const existente = carritoCliente.find(i => i.id_producto === id);
+
+        if (existente) {
+            if (existente.cantidad >= stock) {
+                alert(`No puedes agregar más. Solo hay ${stock} en stock.`);
+                return;
+            }
+            existente.cantidad++;
+        } else {
+            carritoCliente.push({ id_producto: id, nombre, precio: parseFloat(precio), cantidad: 1 });
+        }
+
+        renderizarCarrito();
+    }
+
+    // --- RENDERIZAR CARRITO ---
+    function renderizarCarrito() {
+        const contenedor = document.getElementById('carrito-items');
+        const totalEl = document.getElementById('carrito-total');
+        const subtituloEl = document.getElementById('carrito-subtitulo');
+
+        if (carritoCliente.length === 0) {
+            contenedor.innerHTML = `<p style="color: #475569; font-size: 0.85rem; text-align: center; margin: 24px 0;">Tu carrito está vacío</p>`;
+            totalEl.textContent = '$0.00';
+            subtituloEl.textContent = '0 artículos agregados';
+            return;
+        }
+
+        let total = 0;
+        let totalItems = 0;
+
+        contenedor.innerHTML = carritoCliente.map(item => {
+            const subtotal = item.precio * item.cantidad;
+            total += subtotal;
+            totalItems += item.cantidad;
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+                <div style="flex:1; min-width:0;">
+                    <p style="margin:0; color:white; font-size:0.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.nombre}</p>
+                    <p style="margin:2px 0 0; color:#64748b; font-size:0.75rem;">$${item.precio.toFixed(2)} × ${item.cantidad}</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-left:12px;">
+                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', -1)"
+                        style="background:rgba(255,255,255,0.1); color:white; border:none; border-radius:6px; width:24px; height:24px; font-size:1rem; cursor:pointer; line-height:1;">−</button>
+                    <span style="color:white; font-weight:700; font-size:0.85rem; min-width:16px; text-align:center;">${item.cantidad}</span>
+                    <button onclick="cambiarCantidadCarrito('${item.id_producto}', 1)"
+                        style="background:rgba(255,255,255,0.1); color:white; border:none; border-radius:6px; width:24px; height:24px; font-size:1rem; cursor:pointer; line-height:1;">+</button>
+                    <span style="color:#10b981; font-weight:700; font-size:0.82rem; min-width:52px; text-align:right;">$${subtotal.toFixed(2)}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        totalEl.textContent = `$${total.toFixed(2)}`;
+        subtituloEl.textContent = `${totalItems} artículo${totalItems !== 1 ? 's' : ''} agregado${totalItems !== 1 ? 's' : ''}`;
+    }
+
+    // --- CAMBIAR CANTIDAD EN CARRITO ---
+    function cambiarCantidadCarrito(id, delta) {
+        const item = carritoCliente.find(i => i.id_producto === id);
+        if (!item) return;
+
+        item.cantidad += delta;
+
+        if (item.cantidad <= 0) {
+            carritoCliente = carritoCliente.filter(i => i.id_producto !== id);
+        }
+
+        renderizarCarrito();
+    }
+
+    // --- VACIAR CARRITO ---
+    function limpiarCarritoCliente() {
+        carritoCliente = [];
+        renderizarCarrito();
+    }
+
+    // --- FINALIZAR COMPRA (llama al mismo endpoint que el panel) ---
+    async function finalizarCompraCliente() {
+        if (carritoCliente.length === 0) {
+            alert('Tu carrito está vacío.');
+            return;
+        }
+
+        // Obtener CURP del cliente logueado (igual que en legacy-app.js)
+        const curpCliente = localStorage.getItem('curp') || sessionStorage.getItem('curp');
+        if (!curpCliente) {
+            alert('Sesión no iniciada. Por favor inicia sesión.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const btn = document.getElementById('btn-finalizar-compra');
+        btn.disabled = true;
+        btn.textContent = 'Procesando...';
+
+        const total = carritoCliente.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+
+        const payload = {
+            precio_total: total,
+            curp_cliente: curpCliente,
+            curp_trabajador: null, // Compra directa del cliente, sin trabajador
+            detalles: carritoCliente.map(i => ({
+                id_producto: i.id_producto,
+                nombre: i.nombre,
+                precio: i.precio,
+                cantidad: i.cantidad
+            }))
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/api/ventas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || 'Error al procesar la compra.');
+
+            // Éxito
+            document.getElementById('modal-folio').textContent = `Folio: ${data.id_venta}`;
+            document.getElementById('modal-compra-exitosa').style.display = 'flex';
+            limpiarCarritoCliente();
+            cargarCatalogoPublico(); // Refresca el stock
+
+        } catch (err) {
+            alert(`❌ Error: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🧾 CONFIRMAR COMPRA';
+        }
+    }
+
+    // --- CERRAR MODAL DE COMPRA EXITOSA ---
+    function cerrarModalCompra() {
+        document.getElementById('modal-compra-exitosa').style.display = 'none';
+    }
+    </script>
 </body>
 </html>
