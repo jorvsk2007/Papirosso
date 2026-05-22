@@ -113,6 +113,11 @@ async function ejecutarLogin() {
         alert("Error de conexión con el servidor: " + e.message);
     }
 }
+function cerrarSesion() {
+    usuarioActual = null;
+    localStorage.removeItem('usuario');
+    window.location.href = "login.html";
+}
 
 // ==========================================
 // 4. NAVEGACIÓN, CONTROL DE ROLES Y PESTAÑAS
