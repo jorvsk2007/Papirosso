@@ -160,6 +160,49 @@ app.post('/api/ventas', async (req, res) => {
     }
 });
 
+// Endpoint 1: Obtener el historial de compras de un cliente específico por su CURP
+app.get('/api/clientes/:curp/compras', async (req, res) => {
+    const { curp } = req.params;
+    try {
+        const { data: ventas, error } = await supabase
+            .from('ventas')
+            .select('*')
+            .eq('curp_cliente', curp)
+            .order('fecha', { ascending: false }); // Las más recientes primero
+
+        if (error) throw error;
+        return res.json(ventas || []);
+    } catch (err) {
+        console.error("Error al obtener compras del cliente:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint 2: Obtener los artículos específicos de un ticket/folio de venta
+app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
+    const { id_venta } = req.params;
+    try {
+        // Hacemos un join o traemos los datos de la tabla 'detalle_venta'
+        // Si tienes una relación o necesitas el nombre del producto, lo ideal es jalarlo de 'producto'
+        const { data: detalles, error } = await supabase
+            .from('detalle_venta')
+            .select(`
+                id_detalle,
+                cantidad,
+                precio_unitario,
+                id_producto,
+                producto ( nombre )
+            `)
+            .eq('id_venta', id_venta);
+
+        if (error) throw error;
+        return res.json(detalles || []);
+    } catch (err) {
+        console.error("Error al obtener detalles de la venta:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 // Ruta para actualizar stock (REABASTECIMIENTO)
 app.put('/api/productos/reabastecer', async (req, res) => {
     const { id_producto, cantidad_a_sumar } = req.body;
