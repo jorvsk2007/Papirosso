@@ -167,8 +167,8 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
         const { data: ventas, error } = await supabase
             .from('ventas')
             .select('*')
-            .eq('curp_cliente', curp)
-            .order('fecha', { ascending: false }); // Las más recientes primero
+            .eq('curp_cliente', curp.trim().toUpperCase())
+            .order('fecha', { ascending: false });
 
         if (error) throw error;
         return res.json(ventas || []);
@@ -178,21 +178,14 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
     }
 });
 
-// Endpoint 2: Obtener los artículos específicos de un ticket/folio de venta
+// Endpoint 2: Obtener los artículos específicos de una venta
 app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
     const { id_venta } = req.params;
     try {
-        // Hacemos un join o traemos los datos de la tabla 'detalle_venta'
-        // Si tienes una relación o necesitas el nombre del producto, lo ideal es jalarlo de 'producto'
+        // Traemos cantidad, precio_unitario e id_producto
         const { data: detalles, error } = await supabase
             .from('detalle_venta')
-            .select(`
-                id_detalle,
-                cantidad,
-                precio_unitario,
-                id_producto,
-                producto ( nombre )
-            `)
+            .select('*')
             .eq('id_venta', id_venta);
 
         if (error) throw error;
