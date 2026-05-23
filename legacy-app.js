@@ -1263,34 +1263,38 @@ async function cargarHistorialComprasPublico() {
 
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVenta) {
+    console.log("Intentando cargar detalle para ID:", idVenta); // <-- ESTO NOS DIRÁ SI EL ID LLEGA BIEN
+
+    if (!idVenta) {
+        console.error("El idVenta está vacío");
+        return;
+    }
+
     const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
     const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        const res = await fetch(`${urlBase}/ventas/${idVenta}/detalles`);
-        const detalles = await res.json(); // ESTO YA ES EL ARRAY
+        // Construcción explícita para evitar errores
+        const urlFinal = `${urlBase}/ventas/${idVenta}/detalles`;
+        console.log("URL de petición:", urlFinal);
 
-        placeholder.classList.add('hidden');
-        panelDetalle.classList.remove('hidden');
+        const res = await fetch(urlFinal);
         
-        document.getElementById('panel-detalle-folio').innerText = `Folio: ${idVenta}`;
+        // Si el servidor responde con 404, esto fallará aquí
+        if (!res.ok) throw new Error("Error en el servidor: " + res.status);
         
-        // Si no tienes el precio total en el detalle, puedes calcularlo aquí
-        let total = detalles.reduce((sum, d) => sum + (d.precio * d.cantidad), 0);
-        document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
+        const detalles = await res.json();
+
+        // Actualizar UI
+        if(placeholder) placeholder.classList.add('hidden');
+        if(panelDetalle) panelDetalle.classList.remove('hidden');
         
-        bodyDetalle.innerHTML = detalles.map(d => `
-            <tr>
-                <td style="padding: 6px 8px;">${d.nombre || 'Producto'}</td>
-                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                <td style="padding: 6px 8px; text-align: right;">$${(d.precio * d.cantidad).toFixed(2)}</td>
-            </tr>
-        `).join('');
+        // ... resto de tu código de pintado
     } catch (e) {
-        console.error(e);
-        alert("No se pudo cargar el detalle.");
+        console.error("Error completo:", e);
+        alert("No se pudo cargar el detalle. Revisa la consola.");
     }
 }
 
