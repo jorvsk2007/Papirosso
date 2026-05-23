@@ -1254,7 +1254,7 @@ async function verDetalleCompraPublica(idVenta) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
 
     try {
-        const res = await fetch(`${obtenerUrlBaseAPI()}/ventas/${idVenta}`);
+        const res = await fetch(`${urlBase}/ventas/${idVenta}/detalles`);
         const venta = await res.json();
 
         // Actualizar UI
