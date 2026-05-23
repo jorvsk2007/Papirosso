@@ -179,18 +179,32 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
 });
 
 // Endpoint 2: Obtener los artículos específicos de una venta
-// index.js (Déjalo así, es la versión que SÍ funcionaba)
 app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
     const { id_venta } = req.params;
     try {
+        // Hacemos el JOIN apuntando a la tabla 'productos'
+        // inner es opcional, si un producto se borró podrías usar left
         const { data: detalles, error } = await supabase
             .from('detalle_venta')
-            .select('*')
+            .select(`
+                *,
+                productos (nombre) 
+            `)
             .eq('id_venta', id_venta);
 
         if (error) throw error;
-        return res.json(detalles || []);
+
+        // Limpiamos los datos para enviarlos bonitos al front
+        const datosLimpios = detalles.map(d => ({
+            cantidad: d.cantidad,
+            subtotal: d.subtotal,
+            // Aquí extraemos el nombre del objeto 'productos' que creó el JOIN
+            nombre_producto: d.productos ? d.productos.nombre : 'Producto sin nombre'
+        }));
+
+        return res.json(datosLimpios);
     } catch (err) {
+        console.error("Error:", err.message);
         return res.status(500).json({ error: err.message });
     }
 });
