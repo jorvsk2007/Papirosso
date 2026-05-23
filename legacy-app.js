@@ -1224,26 +1224,40 @@ async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
     if (!listaCards) return; 
 
-    // Obtener y limpiar CURP
     const curpElement = document.getElementById('nav-user-curp');
     let rawCurp = (usuarioActual && usuarioActual.curp) ? usuarioActual.curp : (curpElement ? curpElement.innerText : "");
     let curp = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!curp || curp === "INVITADO") return;
+    if (!curp || curp === "INVITADO") {
+        listaCards.innerHTML = '<p>Inicia sesión para ver tus compras.</p>';
+        return;
+    }
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        // --- AQUÍ ESTÁ EL CAMBIO ---
-        // Ahora usamos la ruta que definiste en index.js
         const res = await fetch(`${urlBase}/clientes/${encodeURIComponent(curp)}/compras`);
         
-        if (!res.ok) throw new Error("Servidor no encontró la ruta");
+        if (!res.ok) throw new Error("Error al obtener ventas");
         
         const ventas = await res.json();
-        
-        // ... (pintar las tarjetas igual que antes)
+
+        if (!ventas || ventas.length === 0) {
+            listaCards.innerHTML = '<p>No tienes compras registradas.</p>';
+            return;
+        }
+
+        // AQUÍ ESTÁ EL CÓDIGO QUE PINTA LAS CARDS
+        listaCards.innerHTML = ventas.map(v => `
+            <button onclick="verDetalleCompraPublica('${v.id_venta}')" 
+                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
+                <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
+            </button>
+        `).join('');
+
     } catch (e) {
         console.error("Error al cargar:", e);
+        listaCards.innerHTML = '<p style="color:red;">Error al cargar historial.</p>';
     }
 }
 
@@ -1254,24 +1268,28 @@ async function verDetalleCompraPublica(idVenta) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
 
     try {
+        const urlBase = obtenerUrlBaseAPI();
         const res = await fetch(`${urlBase}/ventas/${idVenta}/detalles`);
-        const venta = await res.json();
+        const detalles = await res.json(); // ESTO YA ES EL ARRAY
 
-        // Actualizar UI
         placeholder.classList.add('hidden');
         panelDetalle.classList.remove('hidden');
         
-        document.getElementById('panel-detalle-folio').innerText = `Folio: ${venta.id_venta}`;
-        document.getElementById('panel-detalle-total').innerText = `$${parseFloat(venta.precio_total).toFixed(2)}`;
+        document.getElementById('panel-detalle-folio').innerText = `Folio: ${idVenta}`;
         
-        bodyDetalle.innerHTML = venta.detalles.map(d => `
+        // Si no tienes el precio total en el detalle, puedes calcularlo aquí
+        let total = detalles.reduce((sum, d) => sum + (d.precio * d.cantidad), 0);
+        document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
+        
+        bodyDetalle.innerHTML = detalles.map(d => `
             <tr>
-                <td style="padding: 6px 8px;">${d.nombre}</td>
+                <td style="padding: 6px 8px;">${d.nombre || 'Producto'}</td>
                 <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
                 <td style="padding: 6px 8px; text-align: right;">$${(d.precio * d.cantidad).toFixed(2)}</td>
             </tr>
         `).join('');
     } catch (e) {
+        console.error(e);
         alert("No se pudo cargar el detalle.");
     }
 }
