@@ -1114,10 +1114,10 @@ function actualizarInterfazCarritoPublico() {
     const contenedor = document.getElementById('cart-items');
     const displayTotal = document.getElementById('cart-total');
     
-    if (!contenedor) return; // Si no estamos en la página pública, no hace nada
+    if (!contenedor) return;
 
     if (carrito.length === 0) {
-        contenedor.innerHTML = '<p>Tu carrito está vacío</p>';
+        contenedor.innerHTML = '<p style="color: #94a3b8; text-align: center; margin-top: 20px;">Tu carrito está vacío</p>';
         if (displayTotal) displayTotal.innerText = "$0.00";
         return;
     }
@@ -1126,10 +1126,23 @@ function actualizarInterfazCarritoPublico() {
     contenedor.innerHTML = carrito.map((item, index) => {
         total += (item.precio * item.cantidad);
         return `
-            <div class="item-carrito" style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                <div style="font-weight: bold;">${item.nombre}</div>
-                <div>$${item.precio} x ${item.cantidad}</div>
-                <button onclick="quitarProductoPublico(${index})" style="color: red; cursor: pointer; border:none; background:none;">Eliminar</button>
+            <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">${item.nombre}</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">$${item.precio} c/u</div>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <button onclick="cambiarCantidadCarritoPublico(${index}, -1)" style="border: none; background: white; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #475569; box-shadow: 0 1px 1px rgba(0,0,0,0.1);">-</button>
+                    
+                    <span style="font-weight: 800; font-size: 0.9rem; min-width: 24px; text-align: center; color: #0f172a;">
+                        ${item.cantidad}
+                    </span>
+                    
+                    <button onclick="cambiarCantidadCarritoPublico(${index}, 1)" style="border: none; background: white; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #475569; box-shadow: 0 1px 1px rgba(0,0,0,0.1);">+</button>
+                </div>
+                
+                <button onclick="quitarProductoPublico(${index})" style="margin-left: 10px; color: #ef4444; cursor: pointer; border:none; background:none; font-size: 0.8rem;">✖</button>
             </div>
         `;
     }).join('');
@@ -1137,6 +1150,28 @@ function actualizarInterfazCarritoPublico() {
     if (displayTotal) displayTotal.innerText = `$${total.toFixed(2)}`;
 }
 
+function cambiarCantidadCarritoPublico(index, delta) {
+    const item = carrito[index];
+    if (!item) return;
+
+    const nuevaCantidad = item.cantidad + delta;
+
+    // Si llega a 0, eliminamos el ítem
+    if (nuevaCantidad <= 0) {
+        carrito.splice(index, 1);
+    } else {
+        // Validamos contra el stockMax (si es que lo guardaste al añadir al carrito)
+        // Si no tienes 'stockMax' guardado, simplemente actualiza
+        if (item.stockMax && nuevaCantidad > item.stockMax) {
+            alert("No hay más existencias disponibles.");
+            return;
+        }
+        carrito[index].cantidad = nuevaCantidad;
+    }
+    
+    // Refrescamos SOLO la interfaz pública
+    actualizarInterfazCarritoPublico();
+}
 // 3. Eliminar producto solo de la vista pública
 function quitarProductoPublico(index) {
     carrito.splice(index, 1);
