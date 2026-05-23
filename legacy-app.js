@@ -1320,25 +1320,31 @@ async function cargarProductosGlobal() {
 }
 
 // =======================================================
-// LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
+// LÓGICA DE INICIALIZACIÓN Y BUSCADOR
 // =======================================================
 document.addEventListener('DOMContentLoaded', () => {
-    const publicSearchInput = document.getElementById('public-search');
     
+    cargarProductosGlobal();
+
+    // 2. INICIALIZACIÓN DE LA VISTA
+    if (typeof verificarSesionPublica === 'function') verificarSesionPublica();
+    if (typeof cargarHistorialComprasPublico === 'function') cargarHistorialComprasPublico();
+
+    // 3. LÓGICA DEL BUSCADOR DE PRODUCTOS
+    const publicSearchInput = document.getElementById('public-search');
     if (publicSearchInput) {
         publicSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
             const tarjetas = document.querySelectorAll('#product-grid > div');
 
             tarjetas.forEach(tarjeta => {
-                // Buscamos el título h3 dentro de cada tarjeta de producto
                 const nombreProducto = tarjeta.querySelector('h3').textContent.toLowerCase();
                 const idProducto = tarjeta.querySelector('span').textContent.toLowerCase();
 
                 if (nombreProducto.includes(query) || idProducto.includes(query)) {
-                    tarjeta.style.display = 'flex'; // Muestra la tarjeta si coincide
+                    tarjeta.style.display = 'flex'; 
                 } else {
-                    tarjeta.style.display = 'none'; // La oculta si no coincide
+                    tarjeta.style.display = 'none'; 
                 }
             });
         });
