@@ -259,7 +259,6 @@ function switchTab(tabId, botonActivado) {
 async function irAProductos() {
     const tablaBody = document.getElementById('inventario-tabla-body'); // Panel Admin
     const productGrid = document.getElementById('product-grid');        // Tienda Pública
-    const boton = `<button onclick="añadirAlCarritoPublico('${p.id}', '${p.nombre}', ${p.precio}, ${p.stock})">Agregar</button>`;
     const btnContainer = document.getElementById('btn-nuevo-producto-container');
     const urlBase = obtenerUrlBaseAPI();
     
@@ -267,7 +266,7 @@ async function irAProductos() {
         const respuesta = await fetch(`${urlBase}/productos`);
         const data = await respuesta.json();
 
-        // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN (Pinta la tabla blanca)
+        // 1. SI ESTÁ EN EL PANEL DE ADMINISTRACIÓN
         if (tablaBody) {
             const rol = usuarioActual ? usuarioActual.rol.toLowerCase() : '';
             const puedeAgregar = (rol === 'admin' || rol === 'administrador' || rol === 'almacenista');
@@ -282,16 +281,16 @@ async function irAProductos() {
                     <td class="px-6 py-4 font-semibold text-slate-800">${p.nombre}</td>
                     <td class="px-6 py-4 font-medium text-slate-600">$${parseFloat(p.precio).toFixed(2)}</td>
                     <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600 bg-rose-50 px-2 py-0.5 rounded' : 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded'}">${p.cant_exist} pzas</span></td>
-                    <td class="px-6 py-4"><span class="font-bold ${p.cant_exist <= 5 ? 'text-rose-600' : 'text-emerald-600'}">${p.cant_exist} pzas</span>
-                    <button onclick="reabastecerProducto('${p.id_producto}')" 
-                    class="ml-2 px-2 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-semibold">
-                    Agregar Stock
-                    </button>
+                    <td class="px-6 py-4">
+                        <button onclick="reabastecerProducto('${p.id_producto}')" 
+                        class="ml-2 px-2 py-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all text-xs font-semibold">
+                        Agregar Stock
+                        </button>
                     </td>
                 </tr>`).join('');
         }
 
-        // 2. SI ESTÁ EN LA TIENDA PÚBLICA (Pinta las tarjetas de productos)
+        // 2. SI ESTÁ EN LA TIENDA PÚBLICA
         if (productGrid) {
             if (!data || data.length === 0) {
                 productGrid.innerHTML = '<p class="text-slate-400 text-center col-span-full">No hay productos disponibles por el momento.</p>';
@@ -300,6 +299,9 @@ async function irAProductos() {
 
             productGrid.innerHTML = data.map(p => {
                 const sinStock = p.cant_exist <= 0;
+                // Escapamos el nombre para el onclick
+                const nombreSeguro = p.nombre.replace(/'/g, "\\'");
+                
                 return `
                 <div class="product-card ${sinStock ? 'opacity-60' : ''}" style="background: white; border: 1px solid #e2e8f0; padding: 20px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-direction: column; display: flex; justify-content: space-between;">
                     <div>
@@ -311,7 +313,7 @@ async function irAProductos() {
                         <p style="font-size: 0.8rem; margin-bottom: 8px; font-weight: 600; color: ${sinStock ? '#ef4444' : '#16a34a'}">
                             ${sinStock ? '❌ Agotado' : `📦 Stock: ${p.cant_exist} pzas`}
                         </p>
-                        <button onclick="añadirAlCarrito('${p.id_producto}', '${p.nombre.replace(/'/g, "\\'")}', ${p.precio}, ${p.cant_exist})"
+                        <button onclick="añadirAlCarritoPublico('${p.id_producto}', '${nombreSeguro}', ${p.precio}, ${p.cant_exist})"
                             ${sinStock ? 'disabled' : ''}
                             class="btn-confirm" 
                             style="width: 100%; padding: 10px; font-size: 0.85rem; cursor: ${sinStock ? 'not-allowed' : 'pointer'}; background: ${sinStock ? '#cbd5e1' : ''}; color: ${sinStock ? '#64748b' : ''}; border: none; border-radius: 8px; font-weight: bold;">
