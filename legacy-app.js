@@ -1222,29 +1222,40 @@ async function procesarCompraPublica() {
 // Función principal que el cliente llamará al cargar la página
 async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
-    const curp = document.getElementById('nav-user-curp')?.innerText;
+    const curpElement = document.getElementById('nav-user-curp');
+    
+    // Si no está el elemento en el HTML, salimos para no dar error
+    if (!listaCards) return; 
 
-    if (!listaCards || !curp) return;
+    // Obtenemos la CURP del span (el que se llena al iniciar sesión)
+    const curp = curpElement ? curpElement.innerText.trim() : "";
+
+    if (!curp || curp === "INVITADO" || curp === "") {
+        listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Inicia sesión para ver tus compras.</p>';
+        return;
+    }
 
     try {
         const urlBase = obtenerUrlBaseAPI();
         const res = await fetch(`${urlBase}/ventas?curp=${curp}`);
+        if (!res.ok) throw new Error("Error de conexión");
+        
         const ventas = await res.json();
 
         if (ventas.length === 0) {
-            listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Aún no tienes compras registradas.</p>';
+            listaCards.innerHTML = '<p>Aún no tienes compras.</p>';
             return;
         }
 
         listaCards.innerHTML = ventas.map(v => `
             <button onclick="verDetalleCompraPublica('${v.id_venta}')" 
-                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: 0.2s;">
-                <div style="font-weight: 800; color: #0f172a;">Folio: ${v.id_venta}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">${new Date(v.fecha).toLocaleDateString()} - $${parseFloat(v.precio_total).toFixed(2)}</div>
+                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px;">
+                <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total).toFixed(2)}</div>
             </button>
         `).join('');
     } catch (e) {
-        console.error("Error al cargar historial:", e);
+        console.error("Error historial:", e);
     }
 }
 
