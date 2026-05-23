@@ -179,28 +179,18 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
 });
 
 // Endpoint 2: Obtener los artículos específicos de una venta
+// index.js (Déjalo así, es la versión que SÍ funcionaba)
 app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
     const { id_venta } = req.params;
     try {
-        // Usamos la relación entre tablas
-        // Esto le dice a Supabase: trae todo de detalle_venta, 
-        // y de la tabla 'productos' (vinculada por id_producto), trae el 'nombre'
         const { data: detalles, error } = await supabase
             .from('detalle_venta')
-            .select(`
-                *,
-                productos (
-                    nombre
-                )
-            `)
+            .select('*')
             .eq('id_venta', id_venta);
 
         if (error) throw error;
-
-        // Ahora los datos traen un objeto llamado 'productos' dentro de cada fila
         return res.json(detalles || []);
     } catch (err) {
-        console.error("Error al obtener detalles:", err.message);
         return res.status(500).json({ error: err.message });
     }
 });
