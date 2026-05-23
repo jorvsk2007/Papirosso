@@ -1209,6 +1209,7 @@ async function procesarCompraPublica() {
             alert("¡Compra exitosa!");
             carrito = [];
             actualizarInterfazCarritoPublico();
+            cargarHistorialComprasPublico();
         } else {
             const err = await res.json();
             alert("Error: " + (err.error || "No se pudo registrar la venta"));
