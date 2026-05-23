@@ -1224,6 +1224,7 @@ async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
     if (!listaCards) return; 
 
+    // Obtención segura de CURP
     const curpElement = document.getElementById('nav-user-curp');
     let rawCurp = (usuarioActual && usuarioActual.curp) ? usuarioActual.curp : (curpElement ? curpElement.innerText : "");
     let curp = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -1246,9 +1247,9 @@ async function cargarHistorialComprasPublico() {
             return;
         }
 
-        // AQUÍ ESTÁ EL CÓDIGO QUE PINTA LAS CARDS
+        // Codificamos cada ID aquí mismo para que el clic sea seguro
         listaCards.innerHTML = ventas.map(v => `
-            <button onclick="verDetalleCompraPublica('${v.id_venta}')" 
+            <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
                 style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
                 <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
                 <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
@@ -1262,36 +1263,29 @@ async function cargarHistorialComprasPublico() {
 }
 
 // Función para ver el detalle de una compra específica
-async function verDetalleCompraPublica(idVenta) {
-    // 1. LIMPIEZA: Quitamos el símbolo '#' por seguridad
-    const idLimpio = idVenta.toString().replace('#', ''); 
-    
-    console.log("Intentando cargar detalle para ID limpio:", idLimpio);
-
+async function verDetalleCompraPublica(idVentaCodificado) {
     const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
     const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        // 2. Usamos idLimpio para que la URL sea válida
-        const urlFinal = `${urlBase}/ventas/${idLimpio}/detalles`;
-        console.log("URL de petición:", urlFinal);
-
-        const res = await fetch(urlFinal);
+        // ID ya viene codificado, así que lo enviamos directo a la URL
+        const urlFinal = `${urlBase}/ventas/${idVentaCodificado}/detalles`;
         
+        const res = await fetch(urlFinal);
         if (!res.ok) throw new Error("Error en el servidor: " + res.status);
         
         const detalles = await res.json();
 
-        // 3. Actualizar UI
+        // Actualizar UI
         if(placeholder) placeholder.classList.add('hidden');
         if(panelDetalle) panelDetalle.classList.remove('hidden');
         
-        // Asumiendo que el ID del folio y el total están en estos elementos
-        document.getElementById('panel-detalle-folio').innerText = `Folio: ${idVenta}`;
+        // Decodificamos el ID solo para mostrarlo visualmente
+        document.getElementById('panel-detalle-folio').innerText = `Folio: ${decodeURIComponent(idVentaCodificado)}`;
         
-        // Calcular total desde los detalles
+        // Calcular total
         const total = detalles.reduce((sum, d) => sum + (d.precio * d.cantidad), 0);
         document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
         
@@ -1306,7 +1300,7 @@ async function verDetalleCompraPublica(idVenta) {
 
     } catch (e) {
         console.error("Error completo:", e);
-        alert("No se pudo cargar el detalle. Revisa la consola.");
+        alert("No se pudo cargar el detalle.");
     }
 }
 
