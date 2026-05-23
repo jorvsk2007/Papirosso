@@ -1265,48 +1265,42 @@ async function cargarHistorialComprasPublico() {
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
-    const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        const urlFinal = `${urlBase}/ventas/${idVentaCodificado}/detalles`;
-        
-        const res = await fetch(urlFinal);
-        if (!res.ok) throw new Error("Error en el servidor: " + res.status);
+        const res = await fetch(`${urlBase}/ventas/${idVentaCodificado}/detalles`);
+        if (!res.ok) throw new Error("Error en el servidor");
         
         const detalles = await res.json();
+        
+        // --- AQUÍ ESTÁ EL TRUCO ---
+        // Si no tienes una variable 'productosGlobal', la intentamos obtener o usamos el ID
+        // Supongamos que tienes una lista de productos en el cliente (ej: de un fetch previo)
+        const obtenerNombre = (id) => {
+            if (typeof productosGlobal !== 'undefined') {
+                const prod = productosGlobal.find(p => p.id === id);
+                return prod ? prod.nombre : id;
+            }
+            return id; // Si no encuentra la lista, muestra el ID
+        };
 
-        // Actualizar UI
-        if(placeholder) placeholder.classList.add('hidden');
-        if(panelDetalle) panelDetalle.classList.remove('hidden');
-        
-        document.getElementById('panel-detalle-folio').innerText = `Folio: ${decodeURIComponent(idVentaCodificado)}`;
-        
-        // Calcular total
-        const total = detalles.reduce((sum, d) => sum + parseFloat(d.subtotal || 0), 0);
-        document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
-        
-        // --- AQUÍ ESTÁ LA LÓGICA QUE PINTA EL NOMBRE ---
-        bodyDetalle.innerHTML = detalles.map(d => {
-            // Accedemos al nombre a través del objeto 'productos' que viene del JOIN
-            // Usamos una validación para evitar errores si el nombre no existe
-            const nombre = (d.productos && d.productos.nombre) ? d.productos.nombre : d.id_producto;
-            
-            return `
-                <tr>
-                    <td style="padding: 6px 8px;">${nombre}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal || 0).toFixed(2)}</td>
-                </tr>
-            `;
-        }).join('');
+        // Pintar
+        bodyDetalle.innerHTML = detalles.map(d => `
+            <tr>
+                <td style="padding: 6px 8px;">${obtenerNombre(d.id_producto)}</td>
+                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
+            </tr>
+        `).join('');
 
+        // ... resto del UI (ocultar/mostrar paneles)
     } catch (e) {
-        console.error("Error al cargar detalle:", e);
-        alert("No se pudo cargar el detalle.");
+        console.error(e);
+        alert("Error al cargar detalles.");
     }
 }
+
 // =======================================================
 // LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
 // =======================================================
