@@ -1218,6 +1218,64 @@ async function procesarCompraPublica() {
     }
 }
 
+// Función principal que el cliente llamará al cargar la página
+async function cargarHistorialComprasPublico() {
+    const listaCards = document.getElementById('compras-cliente-lista-cards');
+    const curp = document.getElementById('nav-user-curp')?.innerText;
+
+    if (!listaCards || !curp) return;
+
+    try {
+        const urlBase = obtenerUrlBaseAPI();
+        const res = await fetch(`${urlBase}/ventas?curp=${curp}`);
+        const ventas = await res.json();
+
+        if (ventas.length === 0) {
+            listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Aún no tienes compras registradas.</p>';
+            return;
+        }
+
+        listaCards.innerHTML = ventas.map(v => `
+            <button onclick="verDetalleCompraPublica('${v.id_venta}')" 
+                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: 0.2s;">
+                <div style="font-weight: 800; color: #0f172a;">Folio: ${v.id_venta}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">${new Date(v.fecha).toLocaleDateString()} - $${parseFloat(v.precio_total).toFixed(2)}</div>
+            </button>
+        `).join('');
+    } catch (e) {
+        console.error("Error al cargar historial:", e);
+    }
+}
+
+// Función para ver el detalle de una compra específica
+async function verDetalleCompraPublica(idVenta) {
+    const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
+    const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
+    const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+
+    try {
+        const res = await fetch(`${obtenerUrlBaseAPI()}/ventas/${idVenta}`);
+        const venta = await res.json();
+
+        // Actualizar UI
+        placeholder.classList.add('hidden');
+        panelDetalle.classList.remove('hidden');
+        
+        document.getElementById('panel-detalle-folio').innerText = `Folio: ${venta.id_venta}`;
+        document.getElementById('panel-detalle-total').innerText = `$${parseFloat(venta.precio_total).toFixed(2)}`;
+        
+        bodyDetalle.innerHTML = venta.detalles.map(d => `
+            <tr>
+                <td style="padding: 6px 8px;">${d.nombre}</td>
+                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                <td style="padding: 6px 8px; text-align: right;">$${(d.precio * d.cantidad).toFixed(2)}</td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        alert("No se pudo cargar el detalle.");
+    }
+}
+
 // =======================================================
 // LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
 // =======================================================
