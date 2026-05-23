@@ -514,14 +514,11 @@ async function registrarVenta() {
     const urlBase = obtenerUrlBaseAPI();
 
     try {
-        // Obtenemos el total sin el símbolo '$'
         const totalVenta = parseFloat(document.getElementById('display-total').innerText.replace('$', '').replace(',', ''));
         
-        // Mapeo estricto para evitar el error 400
-        // Aseguramos que cada objeto tenga 'id' (o 'id_producto') según lo que el backend requiere
+        // Mapeo corregido: el backend espera id_producto para los detalles
         const detallesFormateados = carrito.map(item => ({
-            id: item.id_producto,           // Cambiado: usamos el ID que guardamos en el carrito
-            id_producto: item.id_producto,  // Enviamos ambos por seguridad
+            id_producto: item.id_producto, // Aseguramos que sea este ID
             nombre: item.nombre,
             precio: parseFloat(item.precio),
             cantidad: parseInt(item.cantidad)
@@ -529,12 +526,10 @@ async function registrarVenta() {
 
         const ventaData = {
             precio_total: totalVenta,
-            curp_cliente: clienteSeleccionado, // Puede ser null
-            curp_trabajador: usuarioActual ? usuarioActual.curp : 'ADMIN', // Seguridad extra
+            curp_cliente: clienteSeleccionado,
+            curp_trabajador: usuarioActual ? usuarioActual.curp : 'ADMIN',
             detalles: detallesFormateados
         };
-
-        console.log("Enviando venta:", JSON.stringify(ventaData)); // Útil para depurar en consola
 
         const respuesta = await fetch(`${urlBase}/ventas`, {
             method: 'POST',
@@ -545,17 +540,16 @@ async function registrarVenta() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("✅ Venta registrada con éxito: " + (resultado.id_venta || "OK"));
-            totalVentaAnterior = totalVenta;
-            carrito = []; // Limpiamos el carrito local
-            actualizarVistaTicket(); // Refrescamos la vista inmediatamente
+            alert("✅ Venta registrada: " + (resultado.id_venta || ""));
+            carrito = []; 
+            actualizarVistaTicket();
         } else {
-            // Esto mostrará el error real que viene del servidor (el detalle del 400)
-            throw new Error(resultado.error || "Error desconocido al registrar la venta");
+            // El backend responde con el error específico aquí
+            throw new Error(resultado.error || "Error al registrar la venta");
         }
     } catch (err) {
-        console.error("Detalle del error 400:", err);
-        alert("No se pudo registrar la venta: " + err.message);
+        console.error("Error completo:", err);
+        alert("No se pudo registrar: " + err.message);
     }
 }
 
@@ -958,35 +952,37 @@ document.addEventListener('DOMContentLoaded', () => {
 // =======================================================
 
 function añadirAlCarrito(id, nombre, precio, stockDisponible) {
-    // 1. Buscamos por id_producto (clave primaria)
+    // 1. Validar existencia antes de tocar el carrito
+    const stockMax = parseInt(stockDisponible);
+    if (stockMax <= 0) {
+        alert("❌ Este producto no tiene existencias.");
+        return;
+    }
+
     const index = carrito.findIndex(item => item.id_producto === id);
     
+    // 2. Validar si al agregar una unidad más superamos el stock
     if (index !== -1) {
-        if (stockDisponible !== undefined && carrito[index].cantidad >= stockDisponible) {
-            alert("⚠️ Stock insuficiente.");
+        if (carrito[index].cantidad + 1 > stockMax) {
+            alert("⚠️ No puedes exceder el stock disponible.");
             return;
         }
         carrito[index].cantidad++;
     } else {
+        // 3. Agregar nuevo producto
         carrito.push({ 
             id_producto: id, 
             nombre: nombre, 
             precio: parseFloat(precio), 
             cantidad: 1, 
-            stockMax: stockDisponible 
+            stockMax: stockMax 
         });
     }
 
-    // 2. FORZAR CIERRE DE MODALES (Búsqueda y Cliente)
-    const modals = [document.getElementById('modal-busqueda'), document.getElementById('modal-cliente')];
-    modals.forEach(m => { if (m) m.classList.add('hidden'); });
-
-    // 3. REFRESCO DE INTERFAZ
-    // Forzamos el repintado independientemente de la vista activa
+    // Cerrar modales y refrescar
+    const modal = document.getElementById('modal-busqueda');
+    if (modal) modal.classList.add('hidden');
     actualizarVistaTicket();
-    if (typeof actualizarInterfazCarritoPublico === "function") {
-        actualizarInterfazCarritoPublico();
-    }
 }
 
 function actualizarVistaTicket() {
