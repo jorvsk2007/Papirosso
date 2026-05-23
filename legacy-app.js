@@ -1270,7 +1270,6 @@ async function verDetalleCompraPublica(idVentaCodificado) {
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        // ID ya viene codificado, así que lo enviamos directo a la URL
         const urlFinal = `${urlBase}/ventas/${idVentaCodificado}/detalles`;
         
         const res = await fetch(urlFinal);
@@ -1282,19 +1281,18 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         if(placeholder) placeholder.classList.add('hidden');
         if(panelDetalle) panelDetalle.classList.remove('hidden');
         
-        // Decodificamos el ID solo para mostrarlo visualmente
         document.getElementById('panel-detalle-folio').innerText = `Folio: ${decodeURIComponent(idVentaCodificado)}`;
         
-        // Calcular total
-        const total = detalles.reduce((sum, d) => sum + (d.precio * d.cantidad), 0);
+        // Calcular total sumando los subtotales que ya vienen en el JSON
+        const total = detalles.reduce((sum, d) => sum + parseFloat(d.subtotal || 0), 0);
         document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
         
-        // Pintar productos
+        // Pintar productos usando las claves exactas de tu JSON
         bodyDetalle.innerHTML = detalles.map(d => `
             <tr>
-                <td style="padding: 6px 8px;">${d.nombre || 'Producto'}</td>
+                <td style="padding: 6px 8px;">${d.id_producto}</td>
                 <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                <td style="padding: 6px 8px; text-align: right;">$${(d.precio * d.cantidad).toFixed(2)}</td>
+                <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
             </tr>
         `).join('');
 
