@@ -182,16 +182,25 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
 app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
     const { id_venta } = req.params;
     try {
-        // Traemos cantidad, precio_unitario e id_producto
+        // Usamos la relación entre tablas
+        // Esto le dice a Supabase: trae todo de detalle_venta, 
+        // y de la tabla 'productos' (vinculada por id_producto), trae el 'nombre'
         const { data: detalles, error } = await supabase
             .from('detalle_venta')
-            .select('*')
+            .select(`
+                *,
+                productos (
+                    nombre
+                )
+            `)
             .eq('id_venta', id_venta);
 
         if (error) throw error;
+
+        // Ahora los datos traen un objeto llamado 'productos' dentro de cada fila
         return res.json(detalles || []);
     } catch (err) {
-        console.error("Error al obtener detalles de la venta:", err.message);
+        console.error("Error al obtener detalles:", err.message);
         return res.status(500).json({ error: err.message });
     }
 });
