@@ -1283,25 +1283,30 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         document.getElementById('panel-detalle-folio').innerText = `Folio: ${decodeURIComponent(idVentaCodificado)}`;
         
-        // Calcular total sumando los subtotales que ya vienen en el JSON
+        // Calcular total
         const total = detalles.reduce((sum, d) => sum + parseFloat(d.subtotal || 0), 0);
         document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
         
-        // Pintar productos usando las claves exactas de tu JSON
-        bodyDetalle.innerHTML = detalles.map(d => `
-            <tr>
-                <td style="padding: 6px 8px;">${d.id_producto}</td>
-                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
-            </tr>
-        `).join('');
+        // --- AQUÍ ESTÁ LA LÓGICA QUE PINTA EL NOMBRE ---
+        bodyDetalle.innerHTML = detalles.map(d => {
+            // Accedemos al nombre a través del objeto 'productos' que viene del JOIN
+            // Usamos una validación para evitar errores si el nombre no existe
+            const nombre = (d.productos && d.productos.nombre) ? d.productos.nombre : d.id_producto;
+            
+            return `
+                <tr>
+                    <td style="padding: 6px 8px;">${nombre}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal || 0).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
 
     } catch (e) {
-        console.error("Error completo:", e);
+        console.error("Error al cargar detalle:", e);
         alert("No se pudo cargar el detalle.");
     }
 }
-
 // =======================================================
 // LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
 // =======================================================
