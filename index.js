@@ -182,29 +182,14 @@ app.get('/api/clientes/:curp/compras', async (req, res) => {
 app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
     const { id_venta } = req.params;
     try {
-        // Hacemos el JOIN apuntando a la tabla 'productos'
-        // inner es opcional, si un producto se borró podrías usar left
         const { data: detalles, error } = await supabase
             .from('detalle_venta')
-            .select(`
-                *,
-                productos (nombre) 
-            `)
+            .select('*')
             .eq('id_venta', id_venta);
 
         if (error) throw error;
-
-        // Limpiamos los datos para enviarlos bonitos al front
-        const datosLimpios = detalles.map(d => ({
-            cantidad: d.cantidad,
-            subtotal: d.subtotal,
-            // Aquí extraemos el nombre del objeto 'productos' que creó el JOIN
-            nombre_producto: d.productos ? d.productos.nombre : 'Producto sin nombre'
-        }));
-
-        return res.json(datosLimpios);
+        return res.json(detalles || []); // Esto NO da error 500
     } catch (err) {
-        console.error("Error:", err.message);
         return res.status(500).json({ error: err.message });
     }
 });
