@@ -259,6 +259,7 @@ function switchTab(tabId, botonActivado) {
 async function irAProductos() {
     const tablaBody = document.getElementById('inventario-tabla-body'); // Panel Admin
     const productGrid = document.getElementById('product-grid');        // Tienda Pública
+    const boton = `<button onclick="añadirAlCarritoPublico('${p.id}', '${p.nombre}', ${p.precio}, ${p.stock})">Agregar</button>`;
     const btnContainer = document.getElementById('btn-nuevo-producto-container');
     const urlBase = obtenerUrlBaseAPI();
     
