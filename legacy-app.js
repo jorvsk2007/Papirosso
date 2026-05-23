@@ -1263,12 +1263,10 @@ async function cargarHistorialComprasPublico() {
 
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVenta) {
-    console.log("Intentando cargar detalle para ID:", idVenta); // <-- ESTO NOS DIRÁ SI EL ID LLEGA BIEN
-
-    if (!idVenta) {
-        console.error("El idVenta está vacío");
-        return;
-    }
+    // 1. LIMPIEZA: Quitamos el símbolo '#' por seguridad
+    const idLimpio = idVenta.toString().replace('#', ''); 
+    
+    console.log("Intentando cargar detalle para ID limpio:", idLimpio);
 
     const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
     const placeholder = document.getElementById('compras-cliente-detalle-placeholder');
@@ -1276,22 +1274,36 @@ async function verDetalleCompraPublica(idVenta) {
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        // Construcción explícita para evitar errores
-        const urlFinal = `${urlBase}/ventas/${idVenta}/detalles`;
+        // 2. Usamos idLimpio para que la URL sea válida
+        const urlFinal = `${urlBase}/ventas/${idLimpio}/detalles`;
         console.log("URL de petición:", urlFinal);
 
         const res = await fetch(urlFinal);
         
-        // Si el servidor responde con 404, esto fallará aquí
         if (!res.ok) throw new Error("Error en el servidor: " + res.status);
         
         const detalles = await res.json();
 
-        // Actualizar UI
+        // 3. Actualizar UI
         if(placeholder) placeholder.classList.add('hidden');
         if(panelDetalle) panelDetalle.classList.remove('hidden');
         
-        // ... resto de tu código de pintado
+        // Asumiendo que el ID del folio y el total están en estos elementos
+        document.getElementById('panel-detalle-folio').innerText = `Folio: ${idVenta}`;
+        
+        // Calcular total desde los detalles
+        const total = detalles.reduce((sum, d) => sum + (d.precio * d.cantidad), 0);
+        document.getElementById('panel-detalle-total').innerText = `$${total.toFixed(2)}`;
+        
+        // Pintar productos
+        bodyDetalle.innerHTML = detalles.map(d => `
+            <tr>
+                <td style="padding: 6px 8px;">${d.nombre || 'Producto'}</td>
+                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                <td style="padding: 6px 8px; text-align: right;">$${(d.precio * d.cantidad).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
     } catch (e) {
         console.error("Error completo:", e);
         alert("No se pudo cargar el detalle. Revisa la consola.");
