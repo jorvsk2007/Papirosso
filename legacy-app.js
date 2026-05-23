@@ -1095,6 +1095,92 @@ function limpiarCarritoCliente() {
 }
 
 // =======================================================
+// FUNCIONES EXCLUSIVAS PARA INTERFAZ PÚBLICA (NO TOCAR EL PANEL)
+// =======================================================
+
+// 1. Agregar producto desde el catálogo público (usa la lógica base, pero refresca el carrito público)
+function añadirAlCarritoPublico(id, nombre, precio, stock) {
+    // Reutilizamos la lógica de validación que ya existe
+    añadirAlCarrito(id, nombre, precio, stock); 
+    // Refrescamos solo la interfaz pública
+    actualizarInterfazCarritoPublico();
+}
+
+// 2. Pintar el carrito en la barra lateral del cliente
+function actualizarInterfazCarritoPublico() {
+    const contenedor = document.getElementById('cart-items');
+    const displayTotal = document.getElementById('cart-total');
+    
+    if (!contenedor) return; // Si no estamos en la página pública, no hace nada
+
+    if (carrito.length === 0) {
+        contenedor.innerHTML = '<p>Tu carrito está vacío</p>';
+        if (displayTotal) displayTotal.innerText = "$0.00";
+        return;
+    }
+
+    let total = 0;
+    contenedor.innerHTML = carrito.map((item, index) => {
+        total += (item.precio * item.cantidad);
+        return `
+            <div class="item-carrito" style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                <div style="font-weight: bold;">${item.nombre}</div>
+                <div>$${item.precio} x ${item.cantidad}</div>
+                <button onclick="quitarProductoPublico(${index})" style="color: red; cursor: pointer; border:none; background:none;">Eliminar</button>
+            </div>
+        `;
+    }).join('');
+
+    if (displayTotal) displayTotal.innerText = `$${total.toFixed(2)}`;
+}
+
+// 3. Eliminar producto solo de la vista pública
+function quitarProductoPublico(index) {
+    carrito.splice(index, 1);
+    actualizarInterfazCarritoPublico();
+}
+
+// 4. Finalizar compra desde el cliente (Envío al servidor)
+async function procesarCompraPublica() {
+    if (carrito.length === 0) return alert("El carrito está vacío.");
+    
+    const urlBase = obtenerUrlBaseAPI();
+    const curpCliente = document.getElementById('nav-user-curp')?.innerText || "INVITADO";
+    const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+
+    const datosVenta = {
+        precio_total: total,
+        curp_cliente: curpCliente,
+        curp_trabajador: 'VENTA_WEB',
+        detalles: carrito.map(item => ({
+            id_producto: item.id_producto,
+            nombre: item.nombre,
+            precio: parseFloat(item.precio),
+            cantidad: parseInt(item.cantidad)
+        }))
+    };
+
+    try {
+        const res = await fetch(`${urlBase}/ventas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosVenta)
+        });
+
+        if (res.ok) {
+            alert("¡Compra exitosa!");
+            carrito = [];
+            actualizarInterfazCarritoPublico();
+        } else {
+            const err = await res.json();
+            alert("Error: " + (err.error || "No se pudo registrar la venta"));
+        }
+    } catch (e) {
+        alert("Error de conexión");
+    }
+}
+
+// =======================================================
 // LÓGICA DEL BUSCADOR DE PRODUCTOS EN TIENDA PÚBLICA
 // =======================================================
 document.addEventListener('DOMContentLoaded', () => {
