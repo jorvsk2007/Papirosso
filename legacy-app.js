@@ -10,6 +10,7 @@ let carrito = [];
 let totalVentaAnterior = 0;
 let clienteSeleccionado = null; 
 let clientesLocalesPanel = []; // Almacén para el buscador de la pestaña de clientes
+let productosGlobal = []; // <--- Agrega esto en la parte superior
 
 // Función auxiliar para garantizar que todas las consultas apunten al prefijo /api correctamente
 function obtenerUrlBaseAPI() {
@@ -1266,6 +1267,7 @@ async function cargarHistorialComprasPublico() {
 async function verDetalleCompraPublica(idVentaCodificado) {
     const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+    const totalDisplay = document.getElementById('panel-detalle-total');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1274,30 +1276,46 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         const detalles = await res.json();
         
-        // --- AQUÍ ESTÁ EL TRUCO ---
-        // Si no tienes una variable 'productosGlobal', la intentamos obtener o usamos el ID
-        // Supongamos que tienes una lista de productos en el cliente (ej: de un fetch previo)
+        // --- CORRECCIÓN AQUÍ ---
         const obtenerNombre = (id) => {
-            if (typeof productosGlobal !== 'undefined') {
-                const prod = productosGlobal.find(p => p.id === id);
+            if (productosGlobal && productosGlobal.length > 0) {
+                // Buscamos comparando id_producto
+                const prod = productosGlobal.find(p => p.id_producto === id);
                 return prod ? prod.nombre : id;
             }
-            return id; // Si no encuentra la lista, muestra el ID
+            return id;
         };
 
-        // Pintar
-        bodyDetalle.innerHTML = detalles.map(d => `
-            <tr>
-                <td style="padding: 6px 8px;">${obtenerNombre(d.id_producto)}</td>
-                <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
-            </tr>
-        `).join('');
+        // Pintar productos y calcular total real
+        let total = 0;
+        bodyDetalle.innerHTML = detalles.map(d => {
+            const subtotal = parseFloat(d.subtotal || 0);
+            total += subtotal;
+            return `
+                <tr>
+                    <td style="padding: 6px 8px;">${obtenerNombre(d.id_producto)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${subtotal.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
 
-        // ... resto del UI (ocultar/mostrar paneles)
+        if(totalDisplay) totalDisplay.innerText = `$${total.toFixed(2)}`;
+
     } catch (e) {
         console.error(e);
         alert("Error al cargar detalles.");
+    }
+}
+// Agrega esta función si no la tienes o úsala para cargar los datos
+async function cargarProductosGlobal() {
+    try {
+        const urlBase = obtenerUrlBaseAPI();
+        const res = await fetch(`${urlBase}/productos`);
+        productosGlobal = await res.json();
+        console.log("Productos cargados para el historial:", productosGlobal);
+    } catch (e) {
+        console.error("Error al cargar catálogo global:", e);
     }
 }
 
