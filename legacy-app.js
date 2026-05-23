@@ -1265,9 +1265,7 @@ async function cargarHistorialComprasPublico() {
 
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
-    const panelDetalle = document.getElementById('compras-cliente-detalle-contenido');
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
-    const totalDisplay = document.getElementById('panel-detalle-total');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1276,37 +1274,27 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         const detalles = await res.json();
         
-        // --- CORRECCIÓN AQUÍ ---
-        const obtenerNombre = (id) => {
-            if (productosGlobal && productosGlobal.length > 0) {
-                // Buscamos comparando id_producto
-                const prod = productosGlobal.find(p => p.id_producto === id);
-                return prod ? prod.nombre : id;
-            }
-            return id;
-        };
-
-        // Pintar productos y calcular total real
-        let total = 0;
         bodyDetalle.innerHTML = detalles.map(d => {
-            const subtotal = parseFloat(d.subtotal || 0);
-            total += subtotal;
+            // Buscamos el producto en la lista que ya cargamos al inicio
+            // Usamos 'id_producto' porque es el campo que viene en el detalle
+            const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
+            const nombreMostrar = prod ? prod.nombre : d.id_producto; // Si encuentra nombre, lo pone, si no, pone el ID
+            
             return `
                 <tr>
-                    <td style="padding: 6px 8px;">${obtenerNombre(d.id_producto)}</td>
+                    <td style="padding: 6px 8px;">${nombreMostrar}</td>
                     <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right;">$${subtotal.toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
-
-        if(totalDisplay) totalDisplay.innerText = `$${total.toFixed(2)}`;
-
+        
     } catch (e) {
         console.error(e);
-        alert("Error al cargar detalles.");
+        alert("No se pudo cargar el detalle.");
     }
 }
+
 // Agrega esta función si no la tienes o úsala para cargar los datos
 async function cargarProductosGlobal() {
     try {
