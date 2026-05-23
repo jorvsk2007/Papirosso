@@ -1222,22 +1222,27 @@ async function procesarCompraPublica() {
 // Función principal que el cliente llamará al cargar la página
 async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
-    const curpElement = document.getElementById('nav-user-curp');
-    
-    // Si no está el elemento en el HTML, salimos para no dar error
     if (!listaCards) return; 
 
-    // Obtenemos la CURP del span (el que se llena al iniciar sesión)
-    const curp = curpElement ? curpElement.innerText.trim() : "";
+    // PRIORIDAD 1: Buscar en la variable global usuarioActual (más seguro)
+    // PRIORIDAD 2: Buscar en el elemento del HTML
+    const curpElement = document.getElementById('nav-user-curp');
+    const curp = (usuarioActual && usuarioActual.curp) 
+                 ? usuarioActual.curp.trim() 
+                 : (curpElement ? curpElement.innerText.trim() : "");
 
-    if (!curp || curp === "INVITADO" || curp === "") {
+    console.log("CURP detectada para historial:", curp);
+
+    if (!curp || curp.toUpperCase() === "INVITADO" || curp === "") {
         listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Inicia sesión para ver tus compras.</p>';
         return;
     }
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        const res = await fetch(`${urlBase}/ventas?curp=${curp}`);
+        // Usamos encodeURIComponent para evitar errores con caracteres especiales
+        const res = await fetch(`${urlBase}/ventas?curp=${encodeURIComponent(curp)}`);
+        
         if (!res.ok) throw new Error("Error de conexión");
         
         const ventas = await res.json();
@@ -1256,6 +1261,7 @@ async function cargarHistorialComprasPublico() {
         `).join('');
     } catch (e) {
         console.error("Error historial:", e);
+        listaCards.innerHTML = '<p style="color: red;">Error al cargar compras.</p>';
     }
 }
 
