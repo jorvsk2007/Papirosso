@@ -1224,31 +1224,41 @@ async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
     if (!listaCards) return; 
 
-    // PRIORIDAD 1: Buscar en la variable global usuarioActual (más seguro)
-    // PRIORIDAD 2: Buscar en el elemento del HTML
+    // 1. Obtener CURP de forma segura
     const curpElement = document.getElementById('nav-user-curp');
-    const curp = (usuarioActual && usuarioActual.curp) 
-                 ? usuarioActual.curp.trim() 
-                 : (curpElement ? curpElement.innerText.trim() : "");
+    let curp = "";
+    
+    // Primero intentamos la variable global, luego el elemento HTML
+    if (usuarioActual && usuarioActual.curp) {
+        curp = usuarioActual.curp;
+    } else if (curpElement && curpElement.innerText) {
+        curp = curpElement.innerText.trim();
+    }
 
-    console.log("CURP detectada para historial:", curp);
-
+    // 2. Validación estricta: Si es "INVITADO", vacío o nulo, no hacemos la petición
     if (!curp || curp.toUpperCase() === "INVITADO" || curp === "") {
-        listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Inicia sesión para ver tus compras.</p>';
+        console.log("Sesión no iniciada (Invitado), omitiendo carga de compras.");
+        listaCards.innerHTML = '<p style="color: #94a3b8; font-size: 0.8rem;">Inicia sesión para ver tu historial de compras.</p>';
         return;
     }
 
+    // 3. Si llega aquí, es que hay una CURP válida. Procedemos a la petición.
     try {
         const urlBase = obtenerUrlBaseAPI();
-        // Usamos encodeURIComponent para evitar errores con caracteres especiales
-        const res = await fetch(`${urlBase}/ventas?curp=${encodeURIComponent(curp)}`);
+        const urlPeticion = `${urlBase}/ventas?curp=${encodeURIComponent(curp)}`;
         
-        if (!res.ok) throw new Error("Error de conexión");
+        console.log("Intentando cargar historial desde:", urlPeticion);
+
+        const res = await fetch(urlPeticion);
+        
+        if (!res.ok) {
+            throw new Error(`Servidor respondió con ${res.status}`);
+        }
         
         const ventas = await res.json();
 
-        if (ventas.length === 0) {
-            listaCards.innerHTML = '<p>Aún no tienes compras.</p>';
+        if (!ventas || ventas.length === 0) {
+            listaCards.innerHTML = '<p>Aún no tienes compras registradas.</p>';
             return;
         }
 
@@ -1259,9 +1269,10 @@ async function cargarHistorialComprasPublico() {
                 <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total).toFixed(2)}</div>
             </button>
         `).join('');
+        
     } catch (e) {
-        console.error("Error historial:", e);
-        listaCards.innerHTML = '<p style="color: red;">Error al cargar compras.</p>';
+        console.error("Error al cargar el historial:", e);
+        listaCards.innerHTML = '<p style="color: red;">No se pudo conectar con el servidor.</p>';
     }
 }
 
