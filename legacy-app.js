@@ -169,7 +169,7 @@ function switchTab(tabId, botonActivado) {
     const rolActual = usuarioActual && usuarioActual.rol ? usuarioActual.rol.toLowerCase().trim() : '';
 
     // PROTECCIÓN DE SEGURIDAD EN NAVEGACIÓN SEGÚN EL ROL DE LA BD
-    if (tabId === 'section-reportes' && rolActual !== 'admin' && rolActual !== 'administrador') {
+    if (tabId === 'section-reportes' && rolActual !== 'admin' && rolActual !== 'administrador' && rolActual !== 'visitante') {
         alert("Acceso Denegado. Módulo reservado para Administradores.");
         return;
     }
