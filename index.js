@@ -105,8 +105,12 @@ app.get('/api/clientes', async (req, res) => {
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
 
-    //El servidor puede ver si es 'visitante' o 'General'
-    if (rol_usuario === 'visitante' || rol_usuario === 'General') {
+    // ESTO NOS DIRÁ LA VERDAD
+    console.log("DEBUG: Valor recibido en rol_usuario:", JSON.stringify(rol_usuario));
+    console.log("DEBUG: Tipo de dato:", typeof rol_usuario);
+
+    // Comparación forzada
+    if (rol_usuario === 'visitante' || rol_usuario === 'General' || rol_usuario?.trim() === 'General') {
         return res.status(403).json({ error: "🚫 Acceso denegado: Tu cuenta tiene un rol de solo lectura." });
     }
 
