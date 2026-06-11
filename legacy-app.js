@@ -1184,7 +1184,13 @@ async function procesarCompraPublica() {
     if (carrito.length === 0) return alert("El carrito está vacío.");
     
     const urlBase = obtenerUrlBaseAPI();
-    const curpCliente = document.getElementById('nav-user-curp')?.innerText || "INVITADO";
+    
+    // 1. Obtenemos la CURP idéntica a como se hace al iniciar la página (desde el localStorage)
+    const sesion = localStorage.getItem('usuario');
+    if (!sesion) return alert("Debes iniciar sesión para comprar.");
+    const usuarioCliente = JSON.parse(sesion);
+    const curpCliente = usuarioCliente.curp; // CURP limpia, sin emojis ni espacios de etiquetas HTML
+
     const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
     const datosVenta = {
@@ -1208,25 +1214,39 @@ async function procesarCompraPublica() {
 
         if (res.ok) {
             alert("¡Compra exitosa!");
-            
-            // Limpiamos la interfaz de inmediato
+
+            // 🔥 2. ACTUALIZACIÓN INMEDIATA DEL PANEL DE DETALLE (DERECHO)
+            // Pintamos los detalles usando el carrito antes de vaciarlo para que sea instantáneo
+            const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+            const totalGrisDisplay = document.getElementById('panel-detalle-total');
+
+            if (bodyDetalle) {
+                bodyDetalle.innerHTML = carrito.map(item => {
+                    const subtotalItem = parseFloat(item.precio) * parseInt(item.cantidad);
+                    return `
+                        <tr>
+                            <td style="padding: 6px 8px;">${item.nombre}</td>
+                            <td style="padding: 6px 8px; text-align: center;">${item.cantidad}</td>
+                            <td style="padding: 6px 8px; text-align: right; font-weight: 600;">$${subtotalItem.toFixed(2)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (totalGrisDisplay) {
+                totalGrisDisplay.innerHTML = `$${total.toFixed(2)}`;
+            }
+
+            // 3. Limpiamos el carrito e interfaz lateral
             carrito = [];
             actualizarInterfazCarritoPublico();
+            
+            // 🔥 4. RE-EJECUTAMOS LA FUNCIÓN QUE PINTA LAS COMPRAS AL INICIAR LA PÁGINA
+            // Forzamos la actualización de la lista de la izquierda
+            await cargarHistorialComprasPublico();
 
-            // Esperamos 2 segundos sólo para darle tiempo a Render/Supabase de escribir los detalles
-            setTimeout(async () => {
-                // 1. Recargamos la lista izquierda (ahora obligatoriamente traerá lo nuevo gracias al rompe-caché)
-                await cargarHistorialComprasPublico();
-
-                // 2. Le damos clic automático a la primera tarjeta que se acaba de generar para ver sus detalles en vivo
-                const listaCards = document.getElementById('compras-cliente-lista-cards');
-                if (listaCards) {
-                    const primerBoton = listaCards.querySelector('button');
-                    if (primerBoton) {
-                        primerBoton.click();
-                    }
-                }
-            }, 2000);
+            // Refrescamos el stock general de la tienda
+            if (typeof irAProductos === 'function') irAProductos();
 
         } else {
             const err = await res.json();
@@ -1246,9 +1266,9 @@ async function cargarHistorialComprasPublico() {
     // Obtención segura de CURP
     const curpElement = document.getElementById('nav-user-curp');
     let rawCurp = (usuarioActual && usuarioActual.curp) ? usuarioActual.curp : (curpElement ? curpElement.innerText : "");
-    let curp = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    let rawCurpLimpio = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!curp || curp === "INVITADO") {
+    if (!rawCurpLimpio || rawCurpLimpio === "INVITADO") {
         listaCards.innerHTML = '<p>Inicia sesión para ver tus compras.</p>';
         return;
     }
@@ -1256,10 +1276,8 @@ async function cargarHistorialComprasPublico() {
     try {
         const urlBase = obtenerUrlBaseAPI();
         
-        // 🔥 SOLUCIÓN AQUÍ: Agregamos un timestamp (?_=${Date.now()}) para romper la caché del navegador de golpe
-        const urlConRompeCache = `${urlBase}/clientes/${encodeURIComponent(curp)}/compras?_=${Date.now()}`;
-        
-        const res = await fetch(urlConRompeCache);
+        // 🔥 AGREGA ESTO: Rompe la caché agregando el timestamp al final de la URL
+        const res = await fetch(`${urlBase}/clientes/${encodeURIComponent(rawCurpLimpio)}/compras?_=${Date.now()}`);
         
         if (!res.ok) throw new Error("Error al obtener ventas");
         
@@ -1270,7 +1288,6 @@ async function cargarHistorialComprasPublico() {
             return;
         }
 
-        // Codificamos cada ID aquí mismo para que el clic sea seguro
         listaCards.innerHTML = ventas.map(v => {
             const totalNumero = Number(v.precio_total);
             return `
