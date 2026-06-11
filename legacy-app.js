@@ -831,9 +831,18 @@ function verificarSesionPublica() {
 
 
 async function registrarVentaPublica() {
+    // 🔥 CANDADO DE SOLO LECTURA CLIENTE ONLINE
+    const sesion = localStorage.getItem('usuario');
+    if (sesion) {
+        const usuarioCliente = JSON.parse(sesion);
+        if (usuarioCliente.curp === 'CHOC000101HDFRRR99') {
+            alert("🚫 Modo Demostración: Este usuario administrador chocolate solo tiene permisos de LECTURA. No puede realizar compras.");
+            return;
+        }
+    }
+
     if (carrito.length === 0) return alert("El carrito está vacío.");
     const urlBase = obtenerUrlBaseAPI();
-    const sesion = localStorage.getItem('usuario');
     if (!sesion) return;
     
     const usuarioCliente = JSON.parse(sesion);
