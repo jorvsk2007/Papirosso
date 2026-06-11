@@ -168,12 +168,7 @@ function verificarPermisosPanel() {
     // 4. NUEVO: Caso Visitante
     else if (rol === 'visitante') {
         // Ocultamos las pestañas que no queremos que vea
-        ocultarElemento('nav-ventas');
-        ocultarElemento('nav-productos');
-        ocultarElemento('nav-clientes');
-        ocultarElemento('nav-text-registro');
-        // Lo mandamos directo a reportes
-        switchTab('section-reportes', document.getElementById('nav-reportes'));
+        switchTab('section-ventas', document.getElementById('nav-ventas'));
     }
 }
 
