@@ -279,4 +279,29 @@
 
     <script src="legacy-app.js"></script>
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const usuario = JSON.parse(localStorage.getItem('usuario'));
+        
+        if (!usuario) {
+            window.location.href = "index.html"; // Por seguridad
+            return;
+        }
+
+        // Definimos la lógica de inicio según el rol
+        if (usuario.rol === 'visitante') {
+            // El visitante va directo a reportes
+            const btnReportes = document.getElementById('nav-reportes'); // Asegúrate que este ID exista
+            if (btnReportes) {
+                switchTab('section-reportes', btnReportes);
+            }
+        } else {
+            // Trabajadores/Admin van a ventas
+            const btnVentas = document.getElementById('nav-ventas');
+            if (btnVentas) {
+                switchTab('section-ventas', btnVentas);
+            }
+        }
+    });
+</script>
 </html>
