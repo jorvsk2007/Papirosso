@@ -532,7 +532,9 @@ async function registrarVenta() {
             precio_total: totalVenta,
             curp_cliente: clienteSeleccionado,
             curp_trabajador: usuarioActual ? usuarioActual.curp : 'ADMIN',
-            detalles: detallesFormateados
+            detalles: detallesFormateados,
+            rol_usuario: usuarioActual.rol
+
         };
 
         const respuesta = await fetch(`${urlBase}/ventas`, {
