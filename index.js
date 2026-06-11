@@ -1,3 +1,8 @@
+console.log("==================================");
+console.log("VERSION NUEVA");
+console.log("COMMIT CHOCOLATE");
+console.log("Fecha:", new Date());
+console.log("==================================");
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
