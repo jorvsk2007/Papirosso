@@ -1207,10 +1207,23 @@ async function procesarCompraPublica() {
         });
 
         if (res.ok) {
+            // 🔥 1. CAPTURAMOS EL RECURSO devuelto por tu base de datos (contiene el id_venta creado)
+            const resultado = await res.json();
+            
             alert("¡Compra exitosa!");
             carrito = [];
             actualizarInterfazCarritoPublico();
-            cargarHistorialComprasPublico();
+            
+            // 2. Refrescamos la lista de la izquierda para que aparezca la nueva tarjeta
+            await cargarHistorialComprasPublico();
+
+            // 🔥 3. OPCIÓN 1: Mandamos a cargar automáticamente el detalle de la venta que se acaba de crear
+            if (resultado && resultado.id_venta) {
+                // Codificamos el ID de la venta por seguridad, tal como lo hace tu .map() de las tarjetas
+                const idCodificado = encodeURIComponent(resultado.id_venta);
+                verDetalleCompraPublica(idCodificado);
+            }
+
         } else {
             const err = await res.json();
             alert("Error: " + (err.error || "No se pudo registrar la venta"));
