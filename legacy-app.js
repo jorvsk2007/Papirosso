@@ -1228,16 +1228,16 @@ async function cargarHistorialComprasPublico() {
     // Obtención segura de CURP
     const curpElement = document.getElementById('nav-user-curp');
     let rawCurp = (usuarioActual && usuarioActual.curp) ? usuarioActual.curp : (curpElement ? curpElement.innerText : "");
-    let curp = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    let rawCurpLimpio = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!curp || curp === "INVITADO") {
+    if (!rawCurpLimpio || rawCurpLimpio === "INVITADO") {
         listaCards.innerHTML = '<p>Inicia sesión para ver tus compras.</p>';
         return;
     }
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        const res = await fetch(`${urlBase}/clientes/${encodeURIComponent(curp)}/compras`);
+        const res = await fetch(`${urlBase}/clientes/${encodeURIComponent(rawCurpLimpio)}/compras`);
         
         if (!res.ok) throw new Error("Error al obtener ventas");
         
@@ -1249,13 +1249,18 @@ async function cargarHistorialComprasPublico() {
         }
 
         // Codificamos cada ID aquí mismo para que el clic sea seguro
-        listaCards.innerHTML = ventas.map(v => `
-            <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
-                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
-                <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total).toFixed(2)}</div>
-            </button>
-        `).join('');
+        listaCards.innerHTML = ventas.map(v => {
+            // Convertimos a número de forma segura e independiente
+            const totalNumero = Number(v.precio_total);
+
+            return `
+                <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
+                    style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
+                    <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold;">$${totalNumero.toFixed(2)}</div>
+                </button>
+            `;
+        }).join('');
 
     } catch (e) {
         console.error("Error al cargar:", e);
