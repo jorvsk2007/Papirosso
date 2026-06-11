@@ -848,11 +848,11 @@ async function registrarVentaPublica() {
             cantidad: parseInt(item.cantidad)
         }));
 
-        //  CORRECCIÓN AQUÍ: Calculamos el total directamente desde el array en memoria
-        const totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
+        const totalTexto = document.getElementById('cart-total').innerText;
+        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
 
         const ventaData = {
-            precio_total: totalVenta, // Ahora 'totalVenta' siempre será un número puro y exacto
+            precio_total: totalVenta,
             curp_cliente: usuarioCliente.curp, 
             curp_trabajador: null,             
             detalles: detallesFormateados
@@ -867,20 +867,26 @@ async function registrarVentaPublica() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
+            // 1. Te avisa que la compra fue un éxito en la base de datos
             alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
             
+            // 2. Vaciamos el arreglo interno de la memoria
             carrito = [];
             
+            // 3. ✨ LIMPIEZA VISUAL AUTOMÁTICA DEL HTML:
+            // Borramos los artículos que se quedaron pintados en la barra lateral
             const cartItemsContainer = document.getElementById('cart-items');
             if (cartItemsContainer) {
                 cartItemsContainer.innerHTML = "Tu carrito está vacío";
             }
             
+            // Restablecemos el total acumulado en pantalla a $0.00
             const cartTotalContainer = document.getElementById('cart-total');
             if (cartTotalContainer) {
                 cartTotalContainer.innerText = "$0.00";
             }
 
+            // 4. Refrescamos el stock de las tarjetas por si te quedaste sin piezas
             irAProductos();
             
         } else {
@@ -1242,22 +1248,14 @@ async function cargarHistorialComprasPublico() {
             return;
         }
 
-        // 🔥 CORRECCIÓN AQUÍ: Guardamos las ventas en una variable global para poder usarlas en el detalle si hace falta
-        window.historialVentasPublico = ventas;
-
         // Codificamos cada ID aquí mismo para que el clic sea seguro
-        listaCards.innerHTML = ventas.map(v => {
-            // 🔥 DETECTOR DE COLUMNAS: Intenta leer 'precio_total', 'total', o 'precio' según lo mande tu base de datos
-            const totalValido = v.precio_total ?? v.total ?? v.precio ?? v.monto ?? 0;
-
-            return `
-                <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
-                    style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
-                    <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold;">$${parseFloat(totalValido).toFixed(2)}</div>
-                </button>
-            `;
-        }).join('');
+        listaCards.innerHTML = ventas.map(v => `
+            <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
+                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
+                <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
+            </button>
+        `).join('');
 
     } catch (e) {
         console.error("Error al cargar:", e);
@@ -1265,9 +1263,9 @@ async function cargarHistorialComprasPublico() {
     }
 }
 
+// Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
-    if (!bodyDetalle) return;
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1277,21 +1275,16 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         const detalles = await res.json();
         
         bodyDetalle.innerHTML = detalles.map(d => {
+            // Buscamos el producto en la lista que ya cargamos al inicio
+            // Usamos 'id_producto' porque es el campo que viene en el detalle
             const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
-            const nombreMostrar = prod ? prod.nombre : ('Producto #' + d.id_producto);
-            
-            // 🔥 DETECTOR DE PRECIO UNITARIO: Saca el precio del catálogo o de los campos comunes del detalle
-            const precioU = parseFloat(d.precio_unitario ?? d.precio ?? (prod ? prod.precio : 0) ?? 0);
-            const cant = parseInt(d.cantidad ?? 0);
-            
-            // Calculamos el subtotal real en caliente para la tabla
-            const subtotalCalculado = precioU * cant;
+            const nombreMostrar = prod ? prod.nombre : d.id_producto; // Si encuentra nombre, lo pone, si no, pone el ID
             
             return `
                 <tr>
                     <td style="padding: 6px 8px;">${nombreMostrar}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${cant}</td>
-                    <td style="padding: 6px 8px; text-align: right; font-weight: 600;">$${subtotalCalculado.toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
