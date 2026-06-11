@@ -105,10 +105,11 @@ app.get('/api/clientes', async (req, res) => {
 app.post('/api/ventas', async (req, res) => {
     const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
 
-    // 🔥 SEGURIDAD POR ROL EN EL SERVIDOR
-    // Si el rol es 'visitante' (nuestros usuarios chocolate), bloqueamos la escritura
-    if (rol_usuario === 'visitante') {
-        return res.status(403).json({ error: "🚫 Acceso denegado: Tu cuenta tiene un rol de solo lectura." });
+    // 🔥 BLINDAJE: Solo estos roles tienen permiso de VENDER
+    const rolesAutorizadosParaVender = ['Admin', 'Cajero']; 
+    
+    if (!rolesAutorizadosParaVender.includes(rol_usuario)) {
+        return res.status(403).json({ error: "🚫 Acceso denegado: Tu rol actual ('" + rol_usuario + "') no tiene permisos de venta." });
     }
 
     try {
