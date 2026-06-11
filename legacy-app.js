@@ -1221,7 +1221,6 @@ async function procesarCompraPublica() {
 }
 
 // Función principal que el cliente llamará al cargar la página
-// Función principal que el cliente llamará al cargar la página
 async function cargarHistorialComprasPublico() {
     const listaCards = document.getElementById('compras-cliente-lista-cards');
     if (!listaCards) return; 
@@ -1249,12 +1248,12 @@ async function cargarHistorialComprasPublico() {
             return;
         }
 
-        // Renderizado de tarjetas usando el precio_total confirmado del JSON
+        // Codificamos cada ID aquí mismo para que el clic sea seguro
         listaCards.innerHTML = ventas.map(v => `
             <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
                 style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
                 <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
-                <div style="font-size: 0.75rem; color: #64748b; font-weight: bold;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
             </button>
         `).join('');
 
@@ -1267,34 +1266,25 @@ async function cargarHistorialComprasPublico() {
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
-    if (!bodyDetalle) return;
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        
-        // 🔥 PARCHE DE SEGURIDAD: Decodificamos y limpiamos el '#' por si la API se marea con caracteres especiales
-        let idLimpio = decodeURIComponent(idVentaCodificado).replace('#', '');
-
-        const res = await fetch(`${urlBase}/ventas/${encodeURIComponent(idLimpio)}/detalles`);
+        const res = await fetch(`${urlBase}/ventas/${idVentaCodificado}/detalles`);
         if (!res.ok) throw new Error("Error en el servidor");
         
         const detalles = await res.json();
         
         bodyDetalle.innerHTML = detalles.map(d => {
             // Buscamos el producto en la lista que ya cargamos al inicio
+            // Usamos 'id_producto' porque es el campo que viene en el detalle
             const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
-            const nombreMostrar = prod ? prod.nombre : d.id_producto; 
-            
-            // 🔥 CÁLCULO EN CALIENTE: Si 'd.subtotal' viene vacío, multiplicamos precio * cantidad
-            const precioUnitario = prod ? parseFloat(prod.precio || 0) : parseFloat(d.precio_unitario || d.precio || 0);
-            const cantidad = parseInt(d.cantidad || 0);
-            const subtotalReal = d.subtotal ? parseFloat(d.subtotal) : (precioUnitario * cantidad);
+            const nombreMostrar = prod ? prod.nombre : d.id_producto; // Si encuentra nombre, lo pone, si no, pone el ID
             
             return `
                 <tr>
                     <td style="padding: 6px 8px;">${nombreMostrar}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right; font-weight: 600;">$${subtotalReal.toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
