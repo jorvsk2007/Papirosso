@@ -55,12 +55,12 @@ app.post('/api/login', async (req, res) => {
             rolFinal = 'visitante';
         }
 
-        let destino = '/punto-de-venta.html'; // Por defecto, el POS de los trabajadores
+        let destino = '/panel.html'; // Por defecto, el POS de los trabajadores
 
         if (tipoUsuario === 'cliente') {
-            destino = '/tienda-cliente.html'; // Los clientes van a su tienda
+            destino = '/cliente-publico.html'; // Los clientes van a su tienda
         } else if (rolFinal === 'visitante') {
-            destino = '/reportes-visualizador.html'; // Tu profesor va a ver los reportes
+            destino = '/panel.html'; // Tu profesor va a ver los reportes
         }
 
         // 3. Éxito. Retornamos el rol adecuado
