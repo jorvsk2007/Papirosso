@@ -1386,7 +1386,6 @@ async function cargarProductosGlobal() {
         const urlBase = obtenerUrlBaseAPI();
         const res = await fetch(`${urlBase}/productos`);
         productosGlobal = await res.json();
-        console.log("Productos cargados para el historial:", productosGlobal);
     } catch (e) {
         console.error("Error al cargar catálogo global:", e);
     }
