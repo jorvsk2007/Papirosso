@@ -1242,14 +1242,22 @@ async function cargarHistorialComprasPublico() {
             return;
         }
 
+        // 🔥 CORRECCIÓN AQUÍ: Guardamos las ventas en una variable global para poder usarlas en el detalle si hace falta
+        window.historialVentasPublico = ventas;
+
         // Codificamos cada ID aquí mismo para que el clic sea seguro
-        listaCards.innerHTML = ventas.map(v => `
-            <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
-                style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
-                <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
-            </button>
-        `).join('');
+        listaCards.innerHTML = ventas.map(v => {
+            // 🔥 DETECTOR DE COLUMNAS: Intenta leer 'precio_total', 'total', o 'precio' según lo mande tu base de datos
+            const totalValido = v.precio_total ?? v.total ?? v.precio ?? v.monto ?? 0;
+
+            return `
+                <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
+                    style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
+                    <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: bold;">$${parseFloat(totalValido).toFixed(2)}</div>
+                </button>
+            `;
+        }).join('');
 
     } catch (e) {
         console.error("Error al cargar:", e);
@@ -1257,11 +1265,9 @@ async function cargarHistorialComprasPublico() {
     }
 }
 
-// Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
-    // Buscamos también el display del total general del detalle (en tu HTML suele llamarse 'detail-total-display' o similar)
-    const displayTotalDetalle = document.getElementById('detail-total-display');
+    if (!bodyDetalle) return;
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1270,37 +1276,25 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         const detalles = await res.json();
         
-        // Variable para acumular el total general de esta venta
-        let sumaTotalVenta = 0;
-
         bodyDetalle.innerHTML = detalles.map(d => {
-            // Buscamos el producto en la lista que ya cargamos al inicio
             const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
-            const nombreMostrar = prod ? prod.nombre : d.id_producto;
+            const nombreMostrar = prod ? prod.nombre : ('Producto #' + d.id_producto);
             
-            //  CORRECCIÓN: Extraemos el precio que viene del producto o del detalle
-            const precioUnitario = prod ? parseFloat(prod.precio || 0) : parseFloat(d.precio_unitario || d.precio || 0);
-            const cantidad = parseInt(d.cantidad || 0);
+            // 🔥 DETECTOR DE PRECIO UNITARIO: Saca el precio del catálogo o de los campos comunes del detalle
+            const precioU = parseFloat(d.precio_unitario ?? d.precio ?? (prod ? prod.precio : 0) ?? 0);
+            const cant = parseInt(d.cantidad ?? 0);
             
-            //  CORRECCIÓN: Calculamos el subtotal real aquí mismo en caliente
-            const subtotalCalculado = precioUnitario * cantidad;
-            
-            // Acumulamos para el total general
-            sumaTotalVenta += subtotalCalculado;
+            // Calculamos el subtotal real en caliente para la tabla
+            const subtotalCalculado = precioU * cant;
             
             return `
                 <tr>
                     <td style="padding: 6px 8px;">${nombreMostrar}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right;">$${subtotalCalculado.toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${cant}</td>
+                    <td style="padding: 6px 8px; text-align: right; font-weight: 600;">$${subtotalCalculado.toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
-
-        //  CORRECCIÓN: Si el elemento del total existe en tu panel derecho, lo actualizamos con la suma real
-        if (displayTotalDetalle) {
-            displayTotalDetalle.innerText = `$${sumaTotalVenta.toFixed(2)}`;
-        }
         
     } catch (e) {
         console.error(e);
