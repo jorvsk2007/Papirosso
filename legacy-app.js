@@ -1207,48 +1207,63 @@ async function procesarCompraPublica() {
         });
 
         if (res.ok) {
+            // Guardamos la respuesta por si la necesitamos
+            const resultado = await res.json();
+            
             alert("¡Compra exitosa!");
 
-            // 🔥 FIX 1: PINTAR EL DETALLE DERECHO EN CALIENTE (Instantáneo)
-            // Llenamos el panel derecho con el carrito antes de borrarlo para dar feedback visual de inmediato
-            const bodyDetalle = document.getElementById('panel-detalle-productos-body');
-            const totalGrisDisplay = document.getElementById('panel-detalle-total');
-
-            if (bodyDetalle) {
-                bodyDetalle.innerHTML = carrito.map(item => {
-                    const subtotalItem = parseFloat(item.precio) * parseInt(item.cantidad);
-                    return `
-                        <tr>
-                            <td style="padding: 6px 8px;">${item.nombre}</td>
-                            <td style="padding: 6px 8px; text-align: center;">${item.cantidad}</td>
-                            <td style="padding: 6px 8px; text-align: right; font-weight: 600;">$${subtotalItem.toFixed(2)}</td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            if (totalGrisDisplay) {
-                totalGrisDisplay.innerHTML = `$${total.toFixed(2)}`;
-            }
-
-            // Limpiamos el carrito e interfaz lateral
+            // 1. Limpiamos el carrito local e interfaz inmediatamente
             carrito = [];
             actualizarInterfazCarritoPublico();
-            
-            // 🔥 FIX 2: TIMEOUT DE 1.5 SEGUNDOS PARA LA LISTA IZQUIERDA
-            // Le damos tiempo a Supabase de terminar de escribir para que al consultar, la venta ya exista
-            setTimeout(async () => {
-                console.log("⏱️ Actualizando lista de compras recientes...");
-                await cargarHistorialComprasPublico();
-            }, 1500);
 
-            if (typeof irAProductos === 'function') irAProductos();
+            // 2. Pintamos el panel derecho EN CALIENTE con un mensaje temporal 
+            // para que el usuario sepa que se está procesando en la base de datos
+            const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+            const totalGrisDisplay = document.getElementById('panel-detalle-total');
+            
+            if (bodyDetalle) {
+                bodyDetalle.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 20px; color: #64748b;">
+                            🔄 Actualizando tu historial con Supabase...
+                        </td>
+                    </tr>
+                `;
+            }
+            if (totalGrisDisplay) totalGrisDisplay.innerHTML = "$0.00";
+
+            // 🔥 3. LA CLAVE: Esperamos 3.5 segundos completos y re-ejecutamos la sincronización inicial
+            setTimeout(async () => {
+                console.log("📡 Re-ejecutando peticiones de actualización...");
+                
+                // Forzamos a la variable global a actualizarse con el localStorage real
+                if (typeof verificarSesionPublica === 'function') {
+                    verificarSesionPublica(); 
+                }
+                
+                // Ejecutamos la función exacta que pinta al iniciar la página
+                await cargarHistorialComprasPublico();
+
+                // Damos un clic automático a la tarjeta más nueva si es que ya apareció
+                const listaCards = document.getElementById('compras-cliente-lista-cards');
+                if (listaCards) {
+                    const primerBoton = listaCards.querySelector('button');
+                    if (primerBoton) {
+                        primerBoton.click();
+                    }
+                }
+
+                // Refrescamos los productos del catálogo por si cambió el stock
+                if (typeof irAProductos === 'function') irAProductos();
+
+            }, 3500); // 3.5 segundos es el tiempo promedio que tarda Render free tier en procesar e indexar en Supabase
 
         } else {
             const err = await res.json();
             alert("Error: " + (err.error || "No se pudo registrar la venta"));
         }
     } catch (e) {
+        console.error(e);
         alert("Error de conexión");
     }
 }
