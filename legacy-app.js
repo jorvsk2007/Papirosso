@@ -1207,32 +1207,43 @@ async function procesarCompraPublica() {
         });
 
         if (res.ok) {
-            // 1. Leemos la respuesta para obtener el id_venta que generó Supabase
             const resultado = await res.json();
             
+            // 🔍 DEBUG: Ver en la consola cómo viene estructurada la respuesta de tu API
+            console.log("RESPUESTA EXITOSA DEL POST /ventas:", resultado);
+
             alert("¡Compra exitosa!");
             
-            // 2. Limpiamos el carrito e interfaz de inmediato para que el cliente vea que ya procesó
+            // Limpiamos carrito local
             carrito = [];
             actualizarInterfazCarritoPublico();
 
-            // 🔥 3. EL TEMPORIZADOR DE 3 SEGUNDOS (3000 milisegundos)
+            // 🔥 EL TEMPORIZADOR INTELIGENTE A PRUEBA DE FALLOS
             setTimeout(async () => {
-                // Refrescamos la lista de tarjetas de la izquierda
+                console.log("⏱️ Pasaron los 3 segundos. Recargando historial izquierdo...");
+                
+                // 1. Forzamos a la lista izquierda a renderizarse con lo nuevo de Supabase
                 await cargarHistorialComprasPublico();
 
-                // Si la API nos regresó el ID de la venta, mandamos a traer sus detalles reales
-                if (resultado && resultado.id_venta) {
-                    const idCodificado = encodeURIComponent(resultado.id_venta);
-                    verDetalleCompraPublica(idCodificado);
+                // 2. CLIC VIRTUAL: Buscamos el primer botón (tarjeta) de la lista izquierda
+                const listaCards = document.getElementById('compras-cliente-lista-cards');
+                if (listaCards) {
+                    const primerBoton = listaCards.querySelector('button');
+                    if (primerBoton) {
+                        console.log("🎯 ¡Tarjeta nueva detectada! Ejecutando clic automático...");
+                        primerBoton.click(); // Esto dispara verDetalleCompraPublica con el ID real de la tarjeta
+                    } else {
+                        console.warn("⚠️ No se encontró ningún botón en la lista de compras.");
+                    }
                 }
-            }, 3000); // <-- Aquí configuras el tiempo en milisegundos
+            }, 3000);
 
         } else {
             const err = await res.json();
             alert("Error: " + (err.error || "No se pudo registrar la venta"));
         }
     } catch (e) {
+        console.error(e);
         alert("Error de conexión");
     }
 }
