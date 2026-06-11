@@ -848,11 +848,11 @@ async function registrarVentaPublica() {
             cantidad: parseInt(item.cantidad)
         }));
 
-        const totalTexto = document.getElementById('cart-total').innerText;
-        const totalVenta = parseFloat(totalTexto.replace('$', '').replace('Total: ', '').trim());
+        // 🔥 CORRECCIÓN AQUÍ: Calculamos el total directamente desde el array en memoria
+        const totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
         const ventaData = {
-            precio_total: totalVenta,
+            precio_total: totalVenta, // Ahora 'totalVenta' siempre será un número puro y exacto
             curp_cliente: usuarioCliente.curp, 
             curp_trabajador: null,             
             detalles: detallesFormateados
@@ -867,26 +867,20 @@ async function registrarVentaPublica() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            // 1. Te avisa que la compra fue un éxito en la base de datos
             alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
             
-            // 2. Vaciamos el arreglo interno de la memoria
             carrito = [];
             
-            // 3. ✨ LIMPIEZA VISUAL AUTOMÁTICA DEL HTML:
-            // Borramos los artículos que se quedaron pintados en la barra lateral
             const cartItemsContainer = document.getElementById('cart-items');
             if (cartItemsContainer) {
                 cartItemsContainer.innerHTML = "Tu carrito está vacío";
             }
             
-            // Restablecemos el total acumulado en pantalla a $0.00
             const cartTotalContainer = document.getElementById('cart-total');
             if (cartTotalContainer) {
                 cartTotalContainer.innerText = "$0.00";
             }
 
-            // 4. Refrescamos el stock de las tarjetas por si te quedaste sin piezas
             irAProductos();
             
         } else {
