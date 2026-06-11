@@ -249,7 +249,7 @@ app.get('/api/reportes', async (req, res) => {
     const { rol } = req.query;
 
     // 2. Definimos quiénes tienen permiso
-    const rolesAutorizados = ['Admin', 'Cajero'];
+    const rolesAutorizados = ['Admin', 'Cajero', 'visitante'];
 
     // 3. Validamos
     if (!rolesAutorizados.includes(rol)) {
