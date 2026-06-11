@@ -1184,13 +1184,7 @@ async function procesarCompraPublica() {
     if (carrito.length === 0) return alert("El carrito está vacío.");
     
     const urlBase = obtenerUrlBaseAPI();
-    
-    // 1. Obtenemos la CURP idéntica a como se hace al iniciar la página (desde el localStorage)
-    const sesion = localStorage.getItem('usuario');
-    if (!sesion) return alert("Debes iniciar sesión para comprar.");
-    const usuarioCliente = JSON.parse(sesion);
-    const curpCliente = usuarioCliente.curp; // CURP limpia, sin emojis ni espacios de etiquetas HTML
-
+    const curpCliente = document.getElementById('nav-user-curp')?.innerText || "INVITADO";
     const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
     const datosVenta = {
@@ -1215,8 +1209,8 @@ async function procesarCompraPublica() {
         if (res.ok) {
             alert("¡Compra exitosa!");
 
-            // 🔥 2. ACTUALIZACIÓN INMEDIATA DEL PANEL DE DETALLE (DERECHO)
-            // Pintamos los detalles usando el carrito antes de vaciarlo para que sea instantáneo
+            // 🔥 FIX 1: PINTAR EL DETALLE DERECHO EN CALIENTE (Instantáneo)
+            // Llenamos el panel derecho con el carrito antes de borrarlo para dar feedback visual de inmediato
             const bodyDetalle = document.getElementById('panel-detalle-productos-body');
             const totalGrisDisplay = document.getElementById('panel-detalle-total');
 
@@ -1237,15 +1231,17 @@ async function procesarCompraPublica() {
                 totalGrisDisplay.innerHTML = `$${total.toFixed(2)}`;
             }
 
-            // 3. Limpiamos el carrito e interfaz lateral
+            // Limpiamos el carrito e interfaz lateral
             carrito = [];
             actualizarInterfazCarritoPublico();
             
-            // 🔥 4. RE-EJECUTAMOS LA FUNCIÓN QUE PINTA LAS COMPRAS AL INICIAR LA PÁGINA
-            // Forzamos la actualización de la lista de la izquierda
-            await cargarHistorialComprasPublico();
+            // 🔥 FIX 2: TIMEOUT DE 1.5 SEGUNDOS PARA LA LISTA IZQUIERDA
+            // Le damos tiempo a Supabase de terminar de escribir para que al consultar, la venta ya exista
+            setTimeout(async () => {
+                console.log("⏱️ Actualizando lista de compras recientes...");
+                await cargarHistorialComprasPublico();
+            }, 1500);
 
-            // Refrescamos el stock general de la tienda
             if (typeof irAProductos === 'function') irAProductos();
 
         } else {
@@ -1253,7 +1249,6 @@ async function procesarCompraPublica() {
             alert("Error: " + (err.error || "No se pudo registrar la venta"));
         }
     } catch (e) {
-        console.error(e);
         alert("Error de conexión");
     }
 }
