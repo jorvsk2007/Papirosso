@@ -1207,22 +1207,26 @@ async function procesarCompraPublica() {
         });
 
         if (res.ok) {
-            // 🔥 1. CAPTURAMOS EL RECURSO devuelto por tu base de datos (contiene el id_venta creado)
+            // 1. Leemos la respuesta para obtener el id_venta que generó Supabase
             const resultado = await res.json();
             
             alert("¡Compra exitosa!");
+            
+            // 2. Limpiamos el carrito e interfaz de inmediato para que el cliente vea que ya procesó
             carrito = [];
             actualizarInterfazCarritoPublico();
-            
-            // 2. Refrescamos la lista de la izquierda para que aparezca la nueva tarjeta
-            await cargarHistorialComprasPublico();
 
-            // 🔥 3. OPCIÓN 1: Mandamos a cargar automáticamente el detalle de la venta que se acaba de crear
-            if (resultado && resultado.id_venta) {
-                // Codificamos el ID de la venta por seguridad, tal como lo hace tu .map() de las tarjetas
-                const idCodificado = encodeURIComponent(resultado.id_venta);
-                verDetalleCompraPublica(idCodificado);
-            }
+            // 🔥 3. EL TEMPORIZADOR DE 3 SEGUNDOS (3000 milisegundos)
+            setTimeout(async () => {
+                // Refrescamos la lista de tarjetas de la izquierda
+                await cargarHistorialComprasPublico();
+
+                // Si la API nos regresó el ID de la venta, mandamos a traer sus detalles reales
+                if (resultado && resultado.id_venta) {
+                    const idCodificado = encodeURIComponent(resultado.id_venta);
+                    verDetalleCompraPublica(idCodificado);
+                }
+            }, 3000); // <-- Aquí configuras el tiempo en milisegundos
 
         } else {
             const err = await res.json();
