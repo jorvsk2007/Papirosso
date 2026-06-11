@@ -245,13 +245,28 @@ app.put('/api/productos/reabastecer', async (req, res) => {
 
 // --- 6. RUTA DE REPORTES (Historial) ---
 app.get('/api/reportes', async (req, res) => {
-    const { data, error } = await supabase
-        .from('ventas')
-        .select('*')
-        .order('fecha', { ascending: false }); // Ventas recientes primero
+    // 1. Obtenemos el rol del parámetro enviado en la URL
+    const { rol } = req.query;
 
-    if (error) return res.status(500).json(error);
-    res.json(data);
+    // 2. Definimos quiénes tienen permiso
+    const rolesAutorizados = ['Admin', 'Cajero'];
+
+    // 3. Validamos
+    if (!rolesAutorizados.includes(rol)) {
+        return res.status(403).json({ error: "🚫 Acceso denegado: No tienes permisos para ver reportes." });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('ventas')
+            .select('*')
+            .order('fecha', { ascending: false });
+
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: "Error al obtener reportes: " + err.message });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
