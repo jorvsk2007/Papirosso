@@ -1253,7 +1253,7 @@ async function cargarHistorialComprasPublico() {
             <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
                 style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
                 <div style="font-weight: 800;">Folio: ${v.id_venta}</div>
-                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total || 0).toFixed(2)}</div>
+                <div style="font-size: 0.75rem; color: #64748b;">$${parseFloat(v.precio_total).toFixed(2)}</div>
             </button>
         `).join('');
 
