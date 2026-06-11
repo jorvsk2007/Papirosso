@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión | Papelería DB</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+    <header class="page-header">
+        <a class="brand" href="index.html">Papirosso</a>
+        <a class="button-link" href="cliente-publico.html">Continuar como invitado</a>
+    </header>
+
+    <main class="page-shell login-shell">
+        <section class="login-card">
+            <div class="login-intro">
+                <span class="eyebrow">Ventana de Acceso</span>
+                <h1>Inicia sesión</h1>
+                <p>Accede con tu curp y contraseña.
+                <br>Nota: La contraseña se te dio en la tienda física</p>
+            </div>
+            <form id="login-form" class="login-form" onsubmit="event.preventDefault(); ejecutarLogin();">
+                <label>CURP</label>
+                <input id="login-curp" type="text" placeholder="Ej. GARC850101HDFABC01" autocomplete="off">
+                <label>Contraseña</label>
+                <input id="login-password" type="password" placeholder="Tu contraseña secreta">
+                <p id="login-error" class="error-text hidden"></p>
+                <div class="login-actions">
+                    <a class="button-link secondary" href="index.html">Volver a Inicio</a>
+                    <button type="submit" class="btn-confirm">Iniciar Sesión</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <script src="legacy-app.js"></script>
+</body>
+</html>

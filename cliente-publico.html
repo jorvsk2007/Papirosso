@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Pública | Papelería DB</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body class="store-page" onload="irAProductos(); verificarSesionPublica(); cargarHistorialComprasPublico();">
+    <header class="page-header">
+        <a class="brand" href="index.html">Papirosso</a>
+        <nav class="store-menu">
+            <a href="login.html" id="nav-login-text">Iniciar Sesión</a>
+            <span id="nav-user-curp" class="user-curp-display hidden" style="color: var(--primary); font-weight: 800; font-family: 'Inter', sans-serif;"></span>
+            <button id="btn-cerrar-sesion-publico" class="hidden" onclick="cerrarSesion()" style="background: none; border: none; color: red; cursor: pointer; font-weight: 600; margin-left: 10px;">🚪 Salir</button>
+            <a href="index.html">Inicio</a>
+        </nav>
+        <button id="easter-egg-trigger" class="easter-egg hidden" aria-label="Egg">🦴</button>
+    </header>
+
+    <main class="store-shell" style="display: grid; grid-template-columns: 1fr 350px; gap: 30px; align-items: start; max-w: 1200px; margin: 0 auto; padding: 20px;">
+        
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <section class="store-hero">
+                <div class="hero-text">
+                    <h1>Catálogo Mayorista</h1>
+                    <div class="store-badges">
+                        <span class="store-badge">Cómodo</span>
+                        <span class="store-badge">Pagos seguros</span>
+                        <span class="store-badge">Inventario</span>
+                    </div>
+                </div>
+                <div class="search-box">
+                    <input id="public-search" type="search" placeholder="Buscar productos">
+                </div>
+            </section>
+
+            <section class="product-grid" id="product-grid"></section>
+
+            <section id="compras-cliente-section" class="hidden" style="background: white; p-padding: 24px; padding: 24px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px;">
+                    <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #0f172a;">📋 Tus Compras Recientes</h2>
+                    <button onclick="regresarATiendaPublica()" style="background: #f1f5f9; border: none; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                        ⬅ Volver al Catálogo
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1.1fr 1.3fr; gap: 24px; align-items: start;">
+                    
+                    <div style="border-right: 1px solid #f1f5f9; padding-right: 16px; max-height: 450px; overflow-y: auto;">
+                        <h3 style="font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; tracking: 0.05em; margin-bottom: 12px; font-weight: 700;">Selecciona una venta</h3>
+                        <div id="compras-cliente-lista-cards" style="display: flex; flex-direction: column; gap: 10px;">
+                            </div>
+                    </div>
+
+                    <div id="compras-cliente-detalle-panel" style="background: #f8fafc; border-radius: 16px; padding: 20px; border: 1px dashed #e2e8f0; min-height: 300px; display: flex; flex-direction: column; justify-content: center;">
+                        <div id="compras-cliente-detalle-placeholder" style="text-align: center; color: #94a3b8; font-size: 0.9rem;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 8px;">👁️</span>
+                            Toca el botón de cualquier compra de la izquierda para ver su desglose completo y productos aquí.
+                        </div>
+                        
+                        <div id="compras-cliente-detalle-contenido" class="hidden">
+                            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+                                <h4 id="panel-detalle-folio" style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a;">--</h4>
+                                <p id="panel-detalle-fecha" style="margin: 4px 0 0 0; font-size: 0.75rem; color: #64748b;">--</p>
+                            </div>
+                            <div style="max-height: 200px; overflow-y: auto; margin-bottom: 14px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.8rem;">
+                                    <thead style="background: #edd; background-color: #f1f5f9; color: #475569; font-weight: 700;">
+                                        <tr>
+                                            <th style="padding: 6px 8px;">Producto</th>
+                                            <th style="padding: 6px 8px; text-align: center;">Cant.</th>
+                                            <th style="padding: 6px 8px; text-align: right;">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="panel-detalle-productos-body">
+                                        </tbody>
+                                </table>
+                            </div>
+                            <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Abonado:</span>
+                                <span id="panel-detalle-total" style="font-size: 1.3rem; font-weight: 900; color: #10b981;">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+
+        <aside class="cart-panel" style="position: sticky; top: 90px; background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-top: 0; width: 100%; box-sizing: border-box;">
+            <h2 style="margin-top: 0; margin-bottom: 15px; font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">🛒 Tu carrito</h2>
+            <div id="cart-items" style="max-height: 320px; overflow-y: auto; margin-bottom: 15px;">Tu carrito está vacío</div>
+            <div class="cart-total" style="border-top: 1px solid #f1f5f9; padding-top: 12px; margin-bottom: 15px; font-size: 1rem; display: flex; justify-content: space-between;">
+                <span>Total:</span>
+                <strong id="cart-total" style="color: var(--primary); font-size: 1.2rem;">$0.00</strong>
+            </div>
+            <button class="btn-confirm" id="checkout-button" onclick="procesarCompraPublica()" style="...">Finalizar Compra</button>
+        </aside>
+
+    </main>
+
+    <div id="easter-egg-modal" class="modal-overlay hidden">
+        <div class="modal-card easter-card">
+            <div class="modal-header">
+                <h2>Sans dice...</h2>
+            </div>
+            <div class="modal-body">
+                <p><strong>“hey. it’s a beautiful day outside. birds are singing, flowers are blooming... on days like these, kids like you... should be buying stationery.”</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="close-easter-egg">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="legacy-app.js"></script>
+</body>
+</html>
