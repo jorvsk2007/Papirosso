@@ -1271,6 +1271,8 @@ async function cargarHistorialComprasPublico() {
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+    // 🔥 1. CAPTURAMOS EL SPAN DEL TOTAL GRANDE
+    const totalGrisDisplay = document.getElementById('panel-detalle-total');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1279,20 +1281,35 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         const detalles = await res.json();
         
+        // 🔥 2. VARIABLE PARA IR SUMANDO TODOS LOS PRODUCTOS
+        let sumaTotalAcumulada = 0;
+        
         bodyDetalle.innerHTML = detalles.map(d => {
             // Buscamos el producto en la lista que ya cargamos al inicio
-            // Usamos 'id_producto' porque es el campo que viene en el detalle
             const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
-            const nombreMostrar = prod ? prod.nombre : d.id_producto; // Si encuentra nombre, lo pone, si no, pone el ID
+            const nombreMostrar = prod ? prod.nombre : d.id_producto;
+            
+            // 🔥 3. CALCULO SEGURO EN CALIENTE POR SI SUPABASE NO TRAE EL SUBTOTAL YA MULTIPLICADO
+            const precioUnitario = prod ? parseFloat(prod.precio || 0) : parseFloat(d.precio_unitario || d.precio || 0);
+            const cantidad = parseInt(d.cantidad || 0);
+            const subtotalReal = d.subtotal ? parseFloat(d.subtotal) : (precioUnitario * cantidad);
+            
+            // 🔥 4. SUMAMOS AL TOTAL GENERAL DE ESTA COMPRA
+            sumaTotalAcumulada += subtotalReal;
             
             return `
                 <tr>
                     <td style="padding: 6px 8px;">${nombreMostrar}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${subtotalReal.toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
+        
+        // 🔥 5. ACTUALIZAMOS EL SPAN CON EL TOTAL REAL QUE CALCULAMOS
+        if (totalGrisDisplay) {
+            totalGrisDisplay.innerHTML = `$${sumaTotalAcumulada.toFixed(2)}`;
+        }
         
     } catch (e) {
         console.error(e);
