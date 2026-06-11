@@ -55,7 +55,7 @@ function cerrarBuscador() {
 }
 
 // ==========================================
-// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) - LIMPIA Y CORREGIDA
+// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) 
 // ==========================================
 async function ejecutarLogin() {
     const curpInput = document.getElementById('login-curp');
@@ -96,17 +96,19 @@ async function ejecutarLogin() {
             return;
         }
 
+        // 1. Guardamos el estado y la sesión una sola vez
         usuarioActual = data;
         if (errorMsg) errorMsg.classList.add('hidden');
-        
-        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
         localStorage.setItem('usuario', JSON.stringify(data));
         
-        // Redirección condicionada según el rol
-        if (data.rol.toLowerCase().trim() === 'cliente') {
-            window.location.href = "cliente-publico.html";
+        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+        
+        // 2. REDIRECCIÓN INTELIGENTE (Usa la instrucción que viene del servidor)
+        if (data.redirect) {
+            window.location.href = data.redirect;
         } else {
-            window.location.href = "panel.html";
+            // Fallback por si acaso el servidor no envía el redirect
+            window.location.href = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
         }
 
     } catch (e) { 
@@ -114,6 +116,7 @@ async function ejecutarLogin() {
         alert("Error de conexión con el servidor: " + e.message);
     }
 }
+
 function cerrarSesion() {
     usuarioActual = null;
     localStorage.removeItem('usuario');

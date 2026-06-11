@@ -55,11 +55,21 @@ app.post('/api/login', async (req, res) => {
             rolFinal = 'visitante';
         }
 
+        let destino = '/punto-de-venta.html'; // Por defecto, el POS de los trabajadores
+
+        if (tipoUsuario === 'cliente') {
+            destino = '/tienda-cliente.html'; // Los clientes van a su tienda
+        } else if (rolFinal === 'visitante') {
+            destino = '/reportes-visualizador.html'; // Tu profesor va a ver los reportes
+        }
+
         // 3. Éxito. Retornamos el rol adecuado
         return res.json({
             curp: usuario.curp.trim(),
-            rol: rolFinal, // Mandará 'visitante', 'cliente', 'administrador', etc.
-            persona: { nombre: "Usuario", apellidos: "Papirosso" }
+            rol: rolFinal,
+            tipo: tipoUsuario,
+            persona: { nombre: "Usuario", apellidos: "Papirosso" },
+            redirect: destino // <--- AQUÍ LE DAS LA ORDEN DE A DÓNDE IR
         });
 
     } catch (err) {
