@@ -213,7 +213,12 @@ app.get('/api/ventas/:id_venta/detalles', async (req, res) => {
 
 // Ruta para actualizar stock (REABASTECIMIENTO)
 app.put('/api/productos/reabastecer', async (req, res) => {
-    const { id_producto, cantidad_a_sumar } = req.body;
+    const { id_producto, cantidad_a_sumar, rol_usuario } = req.body;
+
+    // 🔥 EL CANDADO: Si no es Admin, bloqueamos la petición
+    if (rol_usuario !== 'Admin') {
+        return res.status(403).json({ error: "🚫 Acceso denegado: Solo el Administrador puede reabastecer stock." });
+    }
 
     // 1. Obtener el stock actual
     const { data: producto, error: errFetch } = await supabase

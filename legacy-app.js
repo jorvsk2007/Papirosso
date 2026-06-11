@@ -563,19 +563,29 @@ async function reabastecerProducto(id_producto) {
     const cantidad = prompt("¿Cuántas piezas vas a agregar al inventario?");
     if (!cantidad || isNaN(cantidad)) return;
 
+    // Obtenemos el usuario del localStorage (donde guardaste el rol al loguear)
+    const usuario = JSON.parse(localStorage.getItem('usuario'));
+
     const urlBase = obtenerUrlBaseAPI();
     
     const respuesta = await fetch(`${urlBase}/productos/reabastecer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_producto, cantidad_a_sumar: cantidad })
+        body: JSON.stringify({ 
+            id_producto, 
+            cantidad_a_sumar: cantidad,
+            rol_usuario: usuario ? usuario.rol : null // 👈 ENVIAMOS EL ROL
+        })
     });
+
+    const resultado = await respuesta.json();
 
     if (respuesta.ok) {
         alert("Inventario actualizado.");
-        irAProductos(); // Recarga la tabla para ver el nuevo stock
+        irAProductos();
     } else {
-        alert("Error al actualizar.");
+        // Mostramos el error real que viene del servidor (403 Acceso denegado)
+        alert(resultado.error || "Error al actualizar.");
     }
 }
 
