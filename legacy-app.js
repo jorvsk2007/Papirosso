@@ -839,7 +839,6 @@ async function registrarVentaPublica() {
     const usuarioCliente = JSON.parse(sesion);
 
     try {
-        // Mapeo correcto usando id_producto para evitar el error de "Producto undefined"
         const detallesFormateados = carrito.map(item => ({
             id: item.id_producto,          
             id_producto: item.id_producto, 
@@ -867,27 +866,32 @@ async function registrarVentaPublica() {
         const resultado = await respuesta.json();
 
         if (respuesta.ok) {
-            // 1. Te avisa que la compra fue un éxito en la base de datos
             alert("🛒 ¡Compra en línea registrada con éxito! Folio: " + (resultado.id_venta || "OK"));
             
-            // 2. Vaciamos el arreglo interno de la memoria
+            // Vaciamos el carrito en memoria y en pantalla
             carrito = [];
-            
-            // 3. ✨ LIMPIEZA VISUAL AUTOMÁTICA DEL HTML:
-            // Borramos los artículos que se quedaron pintados en la barra lateral
             const cartItemsContainer = document.getElementById('cart-items');
-            if (cartItemsContainer) {
-                cartItemsContainer.innerHTML = "Tu carrito está vacío";
-            }
+            if (cartItemsContainer) cartItemsContainer.innerHTML = "Tu carrito está vacío";
             
-            // Restablecemos el total acumulado en pantalla a $0.00
             const cartTotalContainer = document.getElementById('cart-total');
-            if (cartTotalContainer) {
-                cartTotalContainer.innerText = "$0.00";
-            }
+            if (cartTotalContainer) cartTotalContainer.innerText = "$0.00";
 
-            // 4. Refrescamos el stock de las tarjetas por si te quedaste sin piezas
+            // Refrescamos el stock
             irAProductos();
+            
+            // 🔥 LA SOLUCIÓN MÁGICA: Esperamos 2 segundos y recargamos el historial
+            setTimeout(async () => {
+                await cargarHistorialComprasPublico();
+                
+                // Le damos clic automático a la tarjeta más nueva para que pinte el detalle derecho
+                const listaCards = document.getElementById('compras-cliente-lista-cards');
+                if (listaCards) {
+                    const primerBoton = listaCards.querySelector('button');
+                    if (primerBoton) {
+                        primerBoton.click();
+                    }
+                }
+            }, 2000); // 2 segundos para que Supabase en Render termine de guardar
             
         } else {
             throw new Error(resultado.error);
