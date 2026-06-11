@@ -848,7 +848,7 @@ async function registrarVentaPublica() {
             cantidad: parseInt(item.cantidad)
         }));
 
-        // 🔥 CORRECCIÓN AQUÍ: Calculamos el total directamente desde el array en memoria
+        //  CORRECCIÓN AQUÍ: Calculamos el total directamente desde el array en memoria
         const totalVenta = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
 
         const ventaData = {
@@ -1260,6 +1260,8 @@ async function cargarHistorialComprasPublico() {
 // Función para ver el detalle de una compra específica
 async function verDetalleCompraPublica(idVentaCodificado) {
     const bodyDetalle = document.getElementById('panel-detalle-productos-body');
+    // Buscamos también el display del total general del detalle (en tu HTML suele llamarse 'detail-total-display' o similar)
+    const displayTotalDetalle = document.getElementById('detail-total-display');
 
     try {
         const urlBase = obtenerUrlBaseAPI();
@@ -1268,20 +1270,37 @@ async function verDetalleCompraPublica(idVentaCodificado) {
         
         const detalles = await res.json();
         
+        // Variable para acumular el total general de esta venta
+        let sumaTotalVenta = 0;
+
         bodyDetalle.innerHTML = detalles.map(d => {
             // Buscamos el producto en la lista que ya cargamos al inicio
-            // Usamos 'id_producto' porque es el campo que viene en el detalle
             const prod = productosGlobal.find(p => p.id_producto === d.id_producto);
-            const nombreMostrar = prod ? prod.nombre : d.id_producto; // Si encuentra nombre, lo pone, si no, pone el ID
+            const nombreMostrar = prod ? prod.nombre : d.id_producto;
+            
+            //  CORRECCIÓN: Extraemos el precio que viene del producto o del detalle
+            const precioUnitario = prod ? parseFloat(prod.precio || 0) : parseFloat(d.precio_unitario || d.precio || 0);
+            const cantidad = parseInt(d.cantidad || 0);
+            
+            //  CORRECCIÓN: Calculamos el subtotal real aquí mismo en caliente
+            const subtotalCalculado = precioUnitario * cantidad;
+            
+            // Acumulamos para el total general
+            sumaTotalVenta += subtotalCalculado;
             
             return `
                 <tr>
                     <td style="padding: 6px 8px;">${nombreMostrar}</td>
-                    <td style="padding: 6px 8px; text-align: center;">${d.cantidad}</td>
-                    <td style="padding: 6px 8px; text-align: right;">$${parseFloat(d.subtotal).toFixed(2)}</td>
+                    <td style="padding: 6px 8px; text-align: center;">${cantidad}</td>
+                    <td style="padding: 6px 8px; text-align: right;">$${subtotalCalculado.toFixed(2)}</td>
                 </tr>
             `;
         }).join('');
+
+        //  CORRECCIÓN: Si el elemento del total existe en tu panel derecho, lo actualizamos con la suma real
+        if (displayTotalDetalle) {
+            displayTotalDetalle.innerText = `$${sumaTotalVenta.toFixed(2)}`;
+        }
         
     } catch (e) {
         console.error(e);
