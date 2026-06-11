@@ -18,10 +18,16 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY
 
 // --- 1. RUTA DE LOGIN (ACTUALIZADA PARA TRABAJADORES Y CLIENTES) ---
 app.post('/api/login', async (req, res) => {
-    const { curp, password } = req.body;
+    const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
 
-    if (!curp || !password) {
-        return res.status(400).json({ error: "CURP y contraseña son obligatorios." });
+    // 🔥 BLINDAJE INFALIBLE
+    // 1. Identificamos si es el usuario de prueba por su CURP (incluso si manipula el rol)
+    const esUsuarioPrueba = (curp_trabajador === 'CHOC000101HDFRRR00' || curp_trabajador === 'CHOC000101HDFRRR99');
+    
+    // 2. Bloqueamos si es el usuario de prueba O si el rol es 'visitante'
+    if (esUsuarioPrueba || rol_usuario === 'visitante' || rol_usuario === 'General') {
+        console.log("🚫 Intento de venta bloqueado para:", curp_trabajador, "con rol:", rol_usuario);
+        return res.status(403).json({ error: "🚫 Acceso denegado: Este perfil no tiene permisos de venta." });
     }
 
     try {
@@ -103,17 +109,12 @@ app.get('/api/clientes', async (req, res) => {
 
 // --- 5. RUTA DE VENTAS (Con actualización de Stock y CURP automática en línea) ---
 app.post('/api/ventas', async (req, res) => {
-    console.log("--- DATOS RECIBIDOS EN EL SERVIDOR ---");
-    console.log("Cuerpo completo:", JSON.stringify(req.body, null, 2));
-
     const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
 
-    const rolesAutorizadosParaVender = ['Admin', 'Cajero']; 
-    
-    // Si rol_usuario llega como undefined o null, el .includes() fallará
-    if (!rol_usuario || !rolesAutorizadosParaVender.includes(rol_usuario)) {
-        console.log("BLOQUEADO: El rol no es válido o no existe. Recibido:", rol_usuario);
-        return res.status(403).json({ error: "🚫 Acceso denegado: Tu rol actual ('" + rol_usuario + "') no tiene permisos de venta." });
+    // 🔥 SEGURIDAD POR ROL EN EL SERVIDOR
+    // Si el rol es 'visitante' (nuestros usuarios chocolate), bloqueamos la escritura
+    if (rol_usuario === 'visitante') {
+        return res.status(403).json({ error: "🚫 Acceso denegado: Tu cuenta tiene un rol de solo lectura." });
     }
 
     try {
