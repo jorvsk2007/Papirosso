@@ -47,10 +47,18 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: "Contraseña incorrecta." });
         }
 
-        // 3. Éxito. Retornamos el rol adecuado ('cliente' o el rol del trabajador)
+        // 🔥 ASIGNACIÓN DE ROL DINÁMICO RESTRINGIDO
+        let rolFinal = tipoUsuario === 'cliente' ? 'cliente' : usuario.rol;
+        
+        // Si es cualquiera de nuestras dos CURPs de prueba, les forzamos el rol maestro de solo lectura
+        if (curpLimpia === 'CHOC000101HDFRRR00' || curpLimpia === 'CHOC000101HDFRRR99') {
+            rolFinal = 'visitante';
+        }
+
+        // 3. Éxito. Retornamos el rol adecuado
         return res.json({
             curp: usuario.curp.trim(),
-            rol: tipoUsuario === 'cliente' ? 'cliente' : usuario.rol,
+            rol: rolFinal, // Mandará 'visitante', 'cliente', 'administrador', etc.
             persona: { nombre: "Usuario", apellidos: "Papirosso" }
         });
 
@@ -95,7 +103,13 @@ app.get('/api/clientes', async (req, res) => {
 
 // --- 5. RUTA DE VENTAS (Con actualización de Stock y CURP automática en línea) ---
 app.post('/api/ventas', async (req, res) => {
-    const { precio_total, curp_cliente, curp_trabajador, detalles } = req.body;
+    const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
+
+    // 🔥 SEGURIDAD POR ROL EN EL SERVIDOR
+    // Si el rol es 'visitante' (nuestros usuarios chocolate), bloqueamos la escritura
+    if (rol_usuario === 'visitante') {
+        return res.status(403).json({ error: "🚫 Acceso denegado: Tu cuenta tiene un rol de solo lectura." });
+    }
 
     try {
         // 🌟 LA REGLA DE TU NEGOCIO: Si no viene un trabajador (venta en línea), 

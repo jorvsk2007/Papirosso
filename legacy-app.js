@@ -863,7 +863,8 @@ async function registrarVentaPublica() {
             precio_total: totalVenta,
             curp_cliente: usuarioCliente.curp, 
             curp_trabajador: null,             
-            detalles: detallesFormateados
+            detalles: detallesFormateados,
+            rol_usuario: usuarioCliente.rol
         };
 
         const respuesta = await fetch(`${urlBase}/ventas`, {
