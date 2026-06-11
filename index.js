@@ -103,12 +103,16 @@ app.get('/api/clientes', async (req, res) => {
 
 // --- 5. RUTA DE VENTAS (Con actualización de Stock y CURP automática en línea) ---
 app.post('/api/ventas', async (req, res) => {
+    console.log("--- DATOS RECIBIDOS EN EL SERVIDOR ---");
+    console.log("Cuerpo completo:", JSON.stringify(req.body, null, 2));
+
     const { precio_total, curp_cliente, curp_trabajador, detalles, rol_usuario } = req.body;
 
-    // 🔥 BLINDAJE: Solo estos roles tienen permiso de VENDER
     const rolesAutorizadosParaVender = ['Admin', 'Cajero']; 
     
-    if (!rolesAutorizadosParaVender.includes(rol_usuario)) {
+    // Si rol_usuario llega como undefined o null, el .includes() fallará
+    if (!rol_usuario || !rolesAutorizadosParaVender.includes(rol_usuario)) {
+        console.log("BLOQUEADO: El rol no es válido o no existe. Recibido:", rol_usuario);
         return res.status(403).json({ error: "🚫 Acceso denegado: Tu rol actual ('" + rol_usuario + "') no tiene permisos de venta." });
     }
 
