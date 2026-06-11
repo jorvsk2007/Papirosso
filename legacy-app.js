@@ -595,27 +595,37 @@ async function reabastecerProducto(id_producto) {
 async function irAReportes() {
     const tablaBody = document.getElementById('reportes-tabla-body');
     if (!tablaBody) return;
+    
+    // Obtenemos el rol del usuario que ya tienes en el estado
+    const rolUsuario = usuarioActual ? usuarioActual.rol : '';
     const urlBase = obtenerUrlBaseAPI();
     
     try {
-        const respuesta = await fetch(`${urlBase}/reportes`);
+        // Pasamos el rol en la URL: /api/reportes?rol=Admin
+        const respuesta = await fetch(`${urlBase}/reportes?rol=${rolUsuario}`);
+        
+        if (!respuesta.ok) {
+            if (respuesta.status === 403) throw new Error("No tienes autorización para ver reportes.");
+            throw new Error("Error al consultar el historial.");
+        }
+
         const data = await respuesta.json();
 
         if (data.length === 0) {
-            tablaBody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 font-medium">No se registran transacciones en el historial.</td></tr>';
+            tablaBody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-400 font-medium">No hay ventas registradas.</td></tr>';
             return;
         }
 
         tablaBody.innerHTML = data.map(v => `
             <tr class="hover:bg-slate-50 border-b border-slate-100 transition">
                 <td class="px-6 py-4 font-bold text-blue-600">#${v.id_venta}</td>
-                <td class="px-6 py-4 text-slate-500">${new Date(v.fecha).toLocaleDateString()} ${new Date(v.fecha).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                <td class="px-6 py-4 text-slate-500">${new Date(v.fecha).toLocaleDateString()}</td>
                 <td class="px-6 py-4 font-extrabold text-emerald-600">$${parseFloat(v.precio_total).toFixed(2)}</td>
                 <td class="px-6 py-4"><code class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-mono">${v.curp_trabajador}</code></td>
             </tr>`).join('');
     } catch (e) { 
         console.error("Error al cargar reportes", e); 
-        tablaBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Error al consultar el historial de ventas.</td></tr>';
+        tablaBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">${e.message}</td></tr>`;
     }
 }
 
