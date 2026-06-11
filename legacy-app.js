@@ -1207,36 +1207,26 @@ async function procesarCompraPublica() {
         });
 
         if (res.ok) {
-            const resultado = await res.json();
-            
-            // 🔍 DEBUG: Ver en la consola cómo viene estructurada la respuesta de tu API
-            console.log("RESPUESTA EXITOSA DEL POST /ventas:", resultado);
-
             alert("¡Compra exitosa!");
             
-            // Limpiamos carrito local
+            // Limpiamos la interfaz de inmediato
             carrito = [];
             actualizarInterfazCarritoPublico();
 
-            // 🔥 EL TEMPORIZADOR INTELIGENTE A PRUEBA DE FALLOS
+            // Esperamos 2 segundos sólo para darle tiempo a Render/Supabase de escribir los detalles
             setTimeout(async () => {
-                console.log("⏱️ Pasaron los 3 segundos. Recargando historial izquierdo...");
-                
-                // 1. Forzamos a la lista izquierda a renderizarse con lo nuevo de Supabase
+                // 1. Recargamos la lista izquierda (ahora obligatoriamente traerá lo nuevo gracias al rompe-caché)
                 await cargarHistorialComprasPublico();
 
-                // 2. CLIC VIRTUAL: Buscamos el primer botón (tarjeta) de la lista izquierda
+                // 2. Le damos clic automático a la primera tarjeta que se acaba de generar para ver sus detalles en vivo
                 const listaCards = document.getElementById('compras-cliente-lista-cards');
                 if (listaCards) {
                     const primerBoton = listaCards.querySelector('button');
                     if (primerBoton) {
-                        console.log("🎯 ¡Tarjeta nueva detectada! Ejecutando clic automático...");
-                        primerBoton.click(); // Esto dispara verDetalleCompraPublica con el ID real de la tarjeta
-                    } else {
-                        console.warn("⚠️ No se encontró ningún botón en la lista de compras.");
+                        primerBoton.click();
                     }
                 }
-            }, 3000);
+            }, 2000);
 
         } else {
             const err = await res.json();
@@ -1256,16 +1246,20 @@ async function cargarHistorialComprasPublico() {
     // Obtención segura de CURP
     const curpElement = document.getElementById('nav-user-curp');
     let rawCurp = (usuarioActual && usuarioActual.curp) ? usuarioActual.curp : (curpElement ? curpElement.innerText : "");
-    let rawCurpLimpio = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    let curp = rawCurp.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!rawCurpLimpio || rawCurpLimpio === "INVITADO") {
+    if (!curp || curp === "INVITADO") {
         listaCards.innerHTML = '<p>Inicia sesión para ver tus compras.</p>';
         return;
     }
 
     try {
         const urlBase = obtenerUrlBaseAPI();
-        const res = await fetch(`${urlBase}/clientes/${encodeURIComponent(rawCurpLimpio)}/compras`);
+        
+        // 🔥 SOLUCIÓN AQUÍ: Agregamos un timestamp (?_=${Date.now()}) para romper la caché del navegador de golpe
+        const urlConRompeCache = `${urlBase}/clientes/${encodeURIComponent(curp)}/compras?_=${Date.now()}`;
+        
+        const res = await fetch(urlConRompeCache);
         
         if (!res.ok) throw new Error("Error al obtener ventas");
         
@@ -1278,9 +1272,7 @@ async function cargarHistorialComprasPublico() {
 
         // Codificamos cada ID aquí mismo para que el clic sea seguro
         listaCards.innerHTML = ventas.map(v => {
-            // Convertimos a número de forma segura e independiente
             const totalNumero = Number(v.precio_total);
-
             return `
                 <button onclick="verDetalleCompraPublica('${encodeURIComponent(v.id_venta)}')" 
                     style="width: 100%; text-align: left; padding: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 8px; cursor: pointer;">
