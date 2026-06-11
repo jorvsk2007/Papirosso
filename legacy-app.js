@@ -144,22 +144,36 @@ function verificarPermisosPanel() {
         userDisplay.innerText = `${usuarioActual.rol}: ${nombreCompleto}`;
     }
 
-    // CONTROL VISUAL POR ROLES AL ENTRAR Y ASIGNACIÓN DE PESTAÑA INICIAL
+    // --- CONTROL DE ACCESO Y PESTAÑA INICIAL ---
+    
+    // 1. Caso Administrador
     if (rol === 'administrador' || rol === 'admin') {
         switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
+    // 2. Caso Cajero
     else if (rol === 'cajero') {
         ocultarElemento('nav-productos');
         ocultarElemento('nav-clientes');
         ocultarElemento('nav-text-registro'); 
         switchTab('section-ventas', document.getElementById('nav-ventas'));
     } 
+    // 3. Caso Almacenista
     else if (rol === 'almacenista') {
         ocultarElemento('nav-ventas');
         ocultarElemento('nav-clientes');
         ocultarElemento('nav-reportes');
         ocultarElemento('nav-text-registro'); 
         switchTab('section-productos', document.getElementById('nav-productos'));
+    }
+    // 4. NUEVO: Caso Visitante
+    else if (rol === 'visitante') {
+        // Ocultamos las pestañas que no queremos que vea
+        ocultarElemento('nav-ventas');
+        ocultarElemento('nav-productos');
+        ocultarElemento('nav-clientes');
+        ocultarElemento('nav-text-registro');
+        // Lo mandamos directo a reportes
+        switchTab('section-reportes', document.getElementById('nav-reportes'));
     }
 }
 
