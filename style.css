@@ -456,3 +456,39 @@ button { font: inherit; }
         max-width: 100%;
     }
 }
+
+/* ==========================================
+   MODAL DE SANS (VENTANA EMERGENTE FIJA)
+   ========================================== */
+
+/* Fondo oscuro flotante que no empuja ningún elemento */
+.modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(15, 23, 42, 0.6) !important; /* Capa oscura translúcida */
+    backdrop-filter: blur(4px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 99999 !important; /* Por encima de absolutamente todo */
+}
+
+/* La tarjeta blanca con el diálogo de Sans */
+.modal-card.easter-card {
+    background: #ffffff !important;
+    border-radius: 24px !important;
+    padding: 32px !important;
+    width: 100% !important;
+    max-width: 450px !important; /* Tamaño perfecto de cuadro de diálogo */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    border: 1px dashed #d1d5db !important;
+    display: block !important;
+}
+
+/* Ocultación estricta usando tu clase .hidden */
+.modal-overlay.hidden {
+    display: none !important;
+}
