@@ -951,54 +951,53 @@ async function registrarVentaPublica() {
 // 10. EASTER EGG - SANS (MORTADELA)
 // ==========================================
 
-// 1. Declaramos el archivo de audio de Qumu de forma global en el script
-const musicaSans = new Audio('megalovania.mp3');
+const musicaSans = new Audio('musicaeaster/toby fox - UNDERTALE Soundtrack - 72 Song That Might Play When You Fight Sans.mp3');
 musicaSans.loop = true;
 
-// 2. Escuchamos cuando el HTML termine de cargar los elementos de la página
 document.addEventListener('DOMContentLoaded', () => {
     const buscadorPublico = document.getElementById('public-search');
     const easterEggBtn = document.getElementById('easter-egg-trigger');
     const modalSans = document.getElementById('easter-egg-modal');
     const btnCerrarSans = document.getElementById('close-easter-egg');
 
-    // Control en tiempo real de lo que se escribe en el buscador
     if (buscadorPublico) {
         buscadorPublico.addEventListener('input', (e) => {
             const texto = e.target.value.toLowerCase().trim();
             
-            // Si el texto es exactamente "mortadela", activamos la sorpresa
             if (texto === 'mortadela') {
                 if (easterEggBtn) easterEggBtn.classList.remove('hidden');
-                if (modalSans) modalSans.classList.remove('hidden');
-                
-                // Intentamos reproducir la música de Qumu
-                musicaSans.play().catch(error => {
-                    console.log("El navegador bloqueó el autoplay hasta que interactúes:", error);
-                });
             } else {
-                // SI EL TEXTO CAMBIA O SE BORRA: Desaparece el botón, el modal y se apaga la música
                 if (easterEggBtn) easterEggBtn.classList.add('hidden');
                 if (modalSans) modalSans.classList.add('hidden');
-                
                 musicaSans.pause();
-                musicaSans.currentTime = 0; // Reinicia la canción al segundo cero
+                musicaSans.currentTime = 0;
             }
         });
     }
 
-    // Funcionalidad para el botón "Cerrar" del propio modal de Sans
+    // AL DAR CLIC EN EL HUESO 🦴
+    if (easterEggBtn) {
+        easterEggBtn.addEventListener('click', () => {
+            if (modalSans) {
+                modalSans.classList.remove('hidden'); // Remueve el hidden y el CSS lo posiciona fixed al centro
+            }
+            musicaSans.play().catch(error => console.log("Audio bloqueado:", error));
+        });
+    }
+
+    // AL CERRAR EL MODAL
     if (btnCerrarSans) {
         btnCerrarSans.addEventListener('click', () => {
-            // Ocultamos el modal visualmente
-            if (modalSans) modalSans.classList.add('hidden');
-            
-            // Apagamos y reiniciamos la música al dar clic en cerrar
+            if (modalSans) {
+                modalSans.classList.add('hidden'); // Lo vuelve a ocultar por completo
+            }
             musicaSans.pause();
             musicaSans.currentTime = 0;
         });
     }
 });
+
+
 
 // =======================================================
 // 6. LÓGICA DE PUNTO DE VENTA Y CARRITO (VERSION RESTAURADA)
