@@ -55,7 +55,7 @@ function cerrarBuscador() {
 }
 
 // ==========================================
-// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) 
+// 3. LÓGICA DE AUTENTICACIÓN (LOGIN) - BLINDADO PARA GITHUB PAGES
 // ==========================================
 async function ejecutarLogin() {
     const curpInput = document.getElementById('login-curp');
@@ -96,42 +96,48 @@ async function ejecutarLogin() {
             return;
         }
 
-        // 1. Guardamos el estado y la sesión una sola vez
+        // Guardamos el estado de sesión
         usuarioActual = data;
-if (errorMsg) errorMsg.classList.add('hidden');
-localStorage.setItem('usuario', JSON.stringify(data));
+        if (errorMsg) errorMsg.classList.add('hidden');
+        localStorage.setItem('usuario', JSON.stringify(data));
+        
+        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+        
+        // --- REDIRECCIÓN INTELIGENTE CORREGIDA ---
+        const pathnameActual = window.location.pathname;
+        const esGithubPages = window.location.hostname.includes("github.io");
+        
+        // Definimos la página objetivo según el tipo de usuario
+        const paginaDestino = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
 
-alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+        if (esGithubPages) {
+            // Extrae correctamente el nombre del repositorio (ej: /Papirosso/)
+            const repoNombre = pathnameActual.split('/')[1]; 
+            window.location.href = `${window.location.origin}/${repoNombre}/${paginaDestino}`;
+        } else {
+            // Localhost o entorno de desarrollo local
+            window.location.href = paginaDestino;
+        }
 
-// OBTENER LA RUTA BASE DE GITHUB PAGES (Ej: /mi-repositorio/)
-const pathnameActual = window.location.pathname;
-const esGithubPages = window.location.hostname.includes("github.io");
-
-if (esGithubPages) {
-    // Extrae el nombre del repositorio de la URL actual
-    const repoNombre = pathnameActual.split('/')[1]; 
-    const paginaDestino = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
-    
-    // Redirige respetando la subcarpeta del repositorio
-    window.location.href = `${window.location.origin}/${repoNombre}/${paginaDestino}`;
-} else {
-    // Localhost fallback tradicional
-    if (data.redirect && !data.redirect.startsWith('http://localhost')) {
-        window.location.href = data.redirect;
-    } else {
-        window.location.href = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
-    }
-}
     } catch (e) { 
         console.error("Error de comunicación:", e);
         alert("Error de conexión con el servidor: " + e.message);
     }
 }
 
+function obtenerRutaRelativaGHPages(pagina) {
+    const esGithubPages = window.location.hostname.includes("github.io");
+    if (esGithubPages) {
+        const repoNombre = window.location.pathname.split('/')[1];
+        return `${window.location.origin}/${repoNombre}/${pagina}`;
+    }
+    return pagina;
+}
+
 function cerrarSesion() {
     usuarioActual = null;
     localStorage.removeItem('usuario');
-    window.location.href = "login.html";
+    window.location.href = obtenerRutaRelativaGHPages("login.html");
 }
 
 // ==========================================
@@ -142,7 +148,7 @@ function verificarPermisosPanel() {
     
     if (!sesion) {
         alert("No has iniciado sesión. Redirigiendo al login...");
-        window.location.href = "login.html";
+        window.location.href = obtenerRutaRelativaGHPages("login.html");
         return;
     }
 
