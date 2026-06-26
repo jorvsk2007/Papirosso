@@ -98,19 +98,30 @@ async function ejecutarLogin() {
 
         // 1. Guardamos el estado y la sesión una sola vez
         usuarioActual = data;
-        if (errorMsg) errorMsg.classList.add('hidden');
-        localStorage.setItem('usuario', JSON.stringify(data));
-        
-        alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
-        
-        // 2. REDIRECCIÓN INTELIGENTE (Usa la instrucción que viene del servidor)
-        if (data.redirect) {
-            window.location.href = data.redirect;
-        } else {
-            // Fallback por si acaso el servidor no envía el redirect
-            window.location.href = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
-        }
+if (errorMsg) errorMsg.classList.add('hidden');
+localStorage.setItem('usuario', JSON.stringify(data));
 
+alert(`¡Bienvenido! Has ingresado como: ${data.rol}`);
+
+// OBTENER LA RUTA BASE DE GITHUB PAGES (Ej: /mi-repositorio/)
+const pathnameActual = window.location.pathname;
+const esGithubPages = window.location.hostname.includes("github.io");
+
+if (esGithubPages) {
+    // Extrae el nombre del repositorio de la URL actual
+    const repoNombre = pathnameActual.split('/')[1]; 
+    const paginaDestino = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
+    
+    // Redirige respetando la subcarpeta del repositorio
+    window.location.href = `${window.location.origin}/${repoNombre}/${paginaDestino}`;
+} else {
+    // Localhost fallback tradicional
+    if (data.redirect && !data.redirect.startsWith('http://localhost')) {
+        window.location.href = data.redirect;
+    } else {
+        window.location.href = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
+    }
+}
     } catch (e) { 
         console.error("Error de comunicación:", e);
         alert("Error de conexión con el servidor: " + e.message);
