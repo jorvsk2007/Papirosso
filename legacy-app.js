@@ -113,7 +113,7 @@ if (esGithubPages) {
     const paginaDestino = data.tipo === 'cliente' ? "cliente-publico.html" : "panel.html";
     
     // Redirige respetando la subcarpeta del repositorio
-    window.location.href = `${window.location.origin}/${repoNombre}/${paginaDestino}`;
+    window.location.href = `${window.location.origin}/${Papirosso}/${paginaDestino}`;
 } else {
     // Localhost fallback tradicional
     if (data.redirect && !data.redirect.startsWith('http://localhost')) {
